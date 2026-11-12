@@ -1,43 +1,43 @@
+/**
+ * PratibhaScan Athlete & Ecosystem Entity Types
+ * Company: KAARYAN LABS
+ */
+
 export interface AthleteProfile {
   id: string;
-  userId: string;
   fullName: string;
   dateOfBirth: string;
-  age: number;
   gender: 'male' | 'female' | 'other';
   primarySport: string;
   secondarySport?: string;
   heightCm: number;
   weightKg: number;
   wingspanCm?: number;
-  academyId?: string;
   academyName?: string;
-  schoolOrCollege?: string;
+  institutionName?: string;
   state: string;
   district: string;
-  talentScore: number; // 0-100 overall composite score
-  badges: string[];
+  compositeScore?: number;
+  verifiedBadges?: string[];
 }
 
-export interface Academy {
+export interface AcademyEntity {
   id: string;
   name: string;
-  registrationNumber: string;
+  registrationNumber?: string;
   sportsOffered: string[];
   state: string;
   district: string;
   contactEmail: string;
-  contactPhone: string;
   athleteCount: number;
-  coachCount: number;
 }
 
-export interface Institution {
+export interface InstitutionEntity {
   id: string;
   name: string;
   type: 'school' | 'college' | 'university' | 'sports_board' | 'federation';
   state: string;
   district: string;
-  talentsScouted: number;
-  assessmentsConducted: number;
+  scoutedCount: number;
+  assessmentCount: number;
 }

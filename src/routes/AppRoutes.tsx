@@ -1,33 +1,34 @@
-import { Routes, Route } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { HomePage } from '@/pages/HomePage';
-import { LoginPage } from '@/pages/LoginPage';
-import { DashboardPage } from '@/pages/DashboardPage';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { PublicLayout } from '@/components/layout/PublicLayout';
+import { DashboardShell } from '@/components/layout/DashboardShell';
+import { LandingPage } from '@/pages/LandingPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
-import { AthleteDashboard } from '@/features/athlete/AthleteDashboard';
-import { AcademyDashboard } from '@/features/academy/AcademyDashboard';
-import { InstitutionDashboard } from '@/features/institution/InstitutionDashboard';
-import { AssessmentRunner } from '@/features/assessments/AssessmentRunner';
-import { ProtectedRoute } from './ProtectedRoute';
+import { AthleteView } from '@/features/athlete/AthleteView';
+import { AcademyView } from '@/features/academy/AcademyView';
+import { InstitutionView } from '@/features/institution/InstitutionView';
+import { AssessmentsView } from '@/features/assessments/AssessmentsView';
+import { DesignSystemView } from '@/features/design-system/DesignSystemView';
 
 export function AppRoutes() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-
-        {/* Authenticated / Core Routes */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/athlete" element={<AthleteDashboard />} />
-        <Route path="/academy" element={<AcademyDashboard />} />
-        <Route path="/institution" element={<InstitutionDashboard />} />
-        <Route path="/assessments" element={<AssessmentRunner />} />
-
-        {/* 404 Not Found Catch-All */}
-        <Route path="*" element={<NotFoundPage />} />
+      {/* Public Marketing Website */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<LandingPage />} />
       </Route>
+
+      {/* Internal Dashboard Shell (Phase 1 Foundation) */}
+      <Route path="/dashboard" element={<DashboardShell />}>
+        <Route index element={<Navigate to="/dashboard/athlete" replace />} />
+        <Route path="athlete" element={<AthleteView />} />
+        <Route path="academy" element={<AcademyView />} />
+        <Route path="institution" element={<InstitutionView />} />
+        <Route path="assessments" element={<AssessmentsView />} />
+        <Route path="design-system" element={<DesignSystemView />} />
+      </Route>
+
+      {/* 404 Not Found Catch-All */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

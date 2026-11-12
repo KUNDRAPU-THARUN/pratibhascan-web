@@ -1,3 +1,8 @@
+/**
+ * PratibhaScan Standardized Assessment Protocols & Results Types
+ * Company: KAARYAN LABS
+ */
+
 export type AssessmentCategory =
   | 'anthropometric'
   | 'speed'
@@ -7,43 +12,33 @@ export type AssessmentCategory =
   | 'flexibility';
 
 export interface AssessmentProtocol {
-  id: string;
   code: string;
-  title: string;
+  name: string;
   category: AssessmentCategory;
+  categoryLabel: string;
   unit: string;
   lowerIsBetter: boolean;
-  benchmarkNorms: {
-    elite: number;
-    good: number;
-    average: number;
-  };
+  equipmentRequired: string[];
+  description: string;
+  methodology: string;
+  standardNormsReference: string;
 }
 
-export interface AssessmentResult {
+export interface AssessmentTrial {
+  trialNumber: number;
+  value: number;
+  timestamp: string;
+}
+
+export interface AssessmentResultEntry {
   id: string;
   protocolCode: string;
   testName: string;
   category: AssessmentCategory;
-  trial1?: number;
-  trial2?: number;
-  trial3?: number;
-  bestScore: number;
+  bestValue: number;
   unit: string;
-  percentileRank: number;
-  status: 'pending' | 'verified' | 'flagged';
-}
-
-export interface AssessmentSession {
-  id: string;
-  athleteId: string;
-  athleteName: string;
-  evaluatorId: string;
-  evaluatorName: string;
-  assessmentDate: string;
-  venue: string;
-  results: AssessmentResult[];
-  compositeScore: number;
-  verified: boolean;
-  notes?: string;
+  trials: number[];
+  percentileBenchmark?: number;
+  verificationStatus: 'pending' | 'verified' | 'requires_review';
+  assessedAt: string;
 }

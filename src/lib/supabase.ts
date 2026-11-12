@@ -1,20 +1,43 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+/**
+ * PratibhaScan Supabase Client Configuration
+ * Phase 1: Architectural Preparation
+ *
+ * NOTE: In Phase 1, we do NOT connect to a live production database.
+ * This client is configured with placeholder/environment fallbacks.
+ * Live authentication, PostgreSQL queries, and Storage will be activated in Phase 2.
+ */
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
+let supabaseInstance: SupabaseClient | null = null;
+
+try {
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+} catch {
+  // Graceful fallback for non-production environments
+  supabaseInstance = null;
+}
+
+export const supabase = supabaseInstance;
+
+/**
+ * Predicate to safely check if valid Supabase credentials have been configured
+ */
 export const isSupabaseConfigured = (): boolean => {
-  return (
-    Boolean(import.meta.env.VITE_SUPABASE_URL) &&
-    import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co' &&
-    Boolean(import.meta.env.VITE_SUPABASE_ANON_KEY) &&
-    import.meta.env.VITE_SUPABASE_ANON_KEY !== 'placeholder-key'
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  return Boolean(
+    url &&
+    url !== 'https://placeholder-project.supabase.co' &&
+    key &&
+    key !== 'placeholder-anon-key'
   );
 };
