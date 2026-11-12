@@ -67,7 +67,7 @@ export function AssessmentsView() {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-navy-950">
               Standardized Assessment Suite
             </h1>
-            <Badge variant="teal">SAI Reference Norms</Badge>
+            <Badge variant="teal">Modeled on SAI Guidelines</Badge>
           </div>
           <p className="text-xs sm:text-sm text-navy-500 mt-1">
             Conduct multi-trial standardized physical evaluations, calibrate measurement tools, and calculate verified scores.

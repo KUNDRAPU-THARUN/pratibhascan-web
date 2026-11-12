@@ -49,6 +49,7 @@ export function InstitutionView() {
               State Sports Board &amp; Institution Portal
             </h1>
             <Badge variant="default">Federation View</Badge>
+            <Badge variant="default" className="text-[10px]">Illustrative Demo Data</Badge>
           </div>
           <p className="text-xs sm:text-sm text-navy-500 mt-1">
             District-level scouting pipeline, verified school assessments, and Khelo India / SAI norm tracking.
@@ -171,6 +172,22 @@ export function InstitutionView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Federation Reports Section (Anchor target for Sidebar) */}
+      <section id="reports" className="pt-2">
+        <Card className="border-navy-200 bg-navy-50/50 p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary-600" />
+              <h3 className="text-base font-bold text-navy-900">Official Federation &amp; Ministry Reports</h3>
+            </div>
+            <Badge variant="default">Phase 2 Integration</Badge>
+          </div>
+          <p className="text-xs text-navy-600 leading-relaxed max-w-2xl">
+            Automated compliance summaries, demographic participation breakdowns, and SAI talent norm export files. Connects to Supabase data views upon Phase 2 rollout.
+          </p>
+        </Card>
+      </section>
 
       {/* Informational Modal */}
       <Modal

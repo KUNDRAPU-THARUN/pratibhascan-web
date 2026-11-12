@@ -43,7 +43,7 @@ export function LandingPage() {
         </h1>
 
         <p className="text-base sm:text-xl text-navy-600 max-w-3xl mx-auto leading-relaxed font-normal">
-          PratibhaScan unifies physical biometric testing, computer-vision validation protocols, and verified digital passports to identify, track, and elevate athletic potential across India.
+          PratibhaScan unifies physical biometric testing, planned computer-vision validation protocols, and structured digital passports to identify, track, and elevate athletic potential across India.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
@@ -67,14 +67,14 @@ export function LandingPage() {
         <div className="pt-8 border-t border-navy-200/60 max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
           <div className="p-3.5 rounded-xl bg-white border border-navy-200/80 shadow-subtle">
             <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Test Standards</p>
-            <p className="text-sm font-bold text-navy-900 mt-1">SAI &amp; World Norms</p>
+            <p className="text-sm font-bold text-navy-900 mt-1">Modeled on SAI Norms</p>
           </div>
           <div className="p-3.5 rounded-xl bg-white border border-navy-200/80 shadow-subtle">
             <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Target Roles</p>
             <p className="text-sm font-bold text-navy-900 mt-1">Athlete, Academy, Board</p>
           </div>
           <div className="p-3.5 rounded-xl bg-white border border-navy-200/80 shadow-subtle">
-            <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Verification</p>
+            <p className="text-xs font-semibold text-navy-400 uppercase tracking-wider">Data Mode</p>
             <p className="text-sm font-bold text-navy-900 mt-1">Multi-Trial Field Data</p>
           </div>
           <div className="p-3.5 rounded-xl bg-white border border-navy-200/80 shadow-subtle">
@@ -268,9 +268,9 @@ export function LandingPage() {
             <div className="h-10 w-10 rounded-xl bg-navy-100 text-navy-800 flex items-center justify-center font-bold text-base">
               03
             </div>
-            <h3 className="text-lg font-bold text-navy-900">Verified Talent Passport</h3>
+            <h3 className="text-lg font-bold text-navy-900">Structured Talent Passport</h3>
             <p className="text-xs sm:text-sm text-navy-600 leading-relaxed">
-              Results sync to a tamper-proof athletic profile, accessible by state sports boards and academies for scholarship selection and national camp invitations.
+              Results consolidate into a standardized athletic profile, accessible by authorized sports boards and academies for scholarship review and national camp evaluation.
             </p>
           </div>
         </div>
@@ -357,9 +357,9 @@ export function LandingPage() {
             <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center">
               <Zap className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-navy-900">Elimination of Scouting Bias</h3>
+            <h3 className="text-base font-bold text-navy-900">Minimizing Subjective Bias</h3>
             <p className="text-xs sm:text-sm text-navy-600 leading-relaxed">
-              Standardized objective scores remove personal favoritism, ensuring selection is purely determined by physical capability and validated test metrics.
+              Standardized physical metrics provide transparent, empirical data to reduce localized favoritism and support evidence-based scouting decisions.
             </p>
           </Card>
 
@@ -369,7 +369,7 @@ export function LandingPage() {
             </div>
             <h3 className="text-base font-bold text-navy-900">Equitable Grassroots Inclusion</h3>
             <p className="text-xs sm:text-sm text-navy-600 leading-relaxed">
-              School and district talent scouts can record tests offline on mobile or web, ensuring talented athletes from remote areas enter the national pipeline.
+              Standard protocols can be executed across remote schools and districts, enabling emerging athletes from non-metropolitan regions to enter talent pipelines.
             </p>
           </Card>
 
@@ -377,9 +377,9 @@ export function LandingPage() {
             <div className="h-10 w-10 rounded-xl bg-navy-100 text-navy-800 flex items-center justify-center">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <h3 className="text-base font-bold text-navy-900">Tamper-Proof Data Governance</h3>
+            <h3 className="text-base font-bold text-navy-900">Auditable Data Governance (Planned)</h3>
             <p className="text-xs sm:text-sm text-navy-600 leading-relaxed">
-              Future Supabase Row Level Security (RLS) and digital audit trails ensure test records cannot be retroactively manipulated or falsified.
+              Planned Supabase Row Level Security (RLS) and digital audit trails are designed to prevent unauthorized retroactive modifications to test records.
             </p>
           </Card>
         </div>

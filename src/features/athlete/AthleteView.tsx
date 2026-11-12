@@ -78,11 +78,14 @@ export function AthleteView() {
         <div className="h-24 bg-gradient-to-r from-primary-600 via-teal-600 to-secondary-600 p-4 relative flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <Badge variant="teal" className="bg-white/20 border-white/30 text-white backdrop-blur-xs text-[11px]">
-              SAI Standardized Profile
+              Protocols Modeled on SAI Benchmarks
+            </Badge>
+            <Badge variant="default" className="bg-navy-950/40 border-white/20 text-white backdrop-blur-xs text-[10px]">
+              Illustrative Demo Data
             </Badge>
           </div>
           <span className="text-xs font-mono bg-black/20 px-2.5 py-1 rounded-full backdrop-blur-xs font-semibold">
-            ID: PS-2026-ATH-081
+            ID: PS-2026-ATH-081 (Sample)
           </span>
         </div>
 
@@ -95,7 +98,7 @@ export function AthleteView() {
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-navy-900">Arjun Verma</h2>
-                  <Badge variant="teal">Verified Athlete</Badge>
+                  <Badge variant="teal">Sample Profile</Badge>
                 </div>
                 <p className="text-xs font-semibold text-primary-700">Track &amp; Field — 100m / 200m Sprints</p>
               </div>
@@ -239,7 +242,7 @@ export function AthleteView() {
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <span className="inline-flex items-center text-xs font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-200">
-                        Coach Verified
+                        Verified Sample Trial
                       </span>
                     </td>
                   </tr>
@@ -249,6 +252,22 @@ export function AthleteView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Performance Trends Section (Anchor target for Sidebar) */}
+      <section id="trends" className="pt-2">
+        <Card className="border-navy-200 bg-navy-50/50 p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary-600" />
+              <h3 className="text-base font-bold text-navy-900">Historical Performance Trends &amp; Percentile Shifts</h3>
+            </div>
+            <Badge variant="default">Phase 2 Integration</Badge>
+          </div>
+          <p className="text-xs text-navy-600 leading-relaxed max-w-2xl">
+            Longitudinal charting tracks changes in acceleration velocity, countermovement jump height, and aerobic threshold over time. This module connects to Supabase historical test sessions upon Phase 2 activation.
+          </p>
+        </Card>
+      </section>
 
       {/* Accessible Action Explanation Modal */}
       <Modal

@@ -94,7 +94,7 @@ export const ROLES_CONFIG: Record<'athlete' | 'academy' | 'institution', RoleCon
         label: 'Standardized Tests',
         path: '/dashboard/assessments',
         iconName: 'ClipboardCheck',
-        description: 'SAI & federation benchmark protocol library',
+        description: 'Protocol library modeled on SAI guidelines',
         isPhase1Ready: true,
       },
       {
@@ -102,7 +102,7 @@ export const ROLES_CONFIG: Record<'athlete' | 'academy' | 'institution', RoleCon
         label: 'Federation Reports',
         path: '/dashboard/institution#reports',
         iconName: 'FileText',
-        description: 'Official verified scouting logs and demographic reports',
+        description: 'Scouting logs and demographic summary reports',
         isPhase1Ready: false,
       },
     ],
