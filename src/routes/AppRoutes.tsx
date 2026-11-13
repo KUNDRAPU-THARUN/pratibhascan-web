@@ -89,7 +89,7 @@ export function AppRoutes() {
       <Route path="/preview" element={<DashboardShell isPreview={true} />}>
         <Route index element={<Navigate to="/preview/athlete" replace />} />
         <Route path="athlete" element={<AthleteView isPreview={true} />} />
-        <Route path="academy" element={<AcademyView />} />
+        <Route path="academy" element={<AcademyView isPreview={true} />} />
         <Route path="institution" element={<InstitutionView />} />
         <Route path="assessments" element={<AssessmentsView />} />
         <Route path="design-system" element={<DesignSystemView />} />
