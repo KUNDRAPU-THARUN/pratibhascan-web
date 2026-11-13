@@ -90,7 +90,7 @@ export function AppRoutes() {
         <Route index element={<Navigate to="/preview/athlete" replace />} />
         <Route path="athlete" element={<AthleteView isPreview={true} />} />
         <Route path="academy" element={<AcademyView isPreview={true} />} />
-        <Route path="institution" element={<InstitutionView />} />
+        <Route path="institution" element={<InstitutionView isPreview={true} />} />
         <Route path="assessments" element={<AssessmentsView />} />
         <Route path="design-system" element={<DesignSystemView />} />
       </Route>
