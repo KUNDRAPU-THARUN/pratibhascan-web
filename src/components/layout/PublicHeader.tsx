@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
-import { Menu, X, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/features/auth/AuthContext';
+import { Menu, X, ArrowRight, LogOut } from 'lucide-react';
 
 export function PublicHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [infoModalOpen, setInfoModalOpen] = useState(false);
   const location = useLocation();
+  const { user, profile, role, signOut } = useAuth();
 
   // Close mobile drawer on route navigation
   useEffect(() => {
@@ -47,29 +48,59 @@ export function PublicHeader() {
 
           {/* Desktop CTAs */}
           <div className="hidden sm:flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setInfoModalOpen(true)}
-              className="text-navy-700"
-            >
-              Sign In
-            </Button>
-            <Link to="/dashboard">
-              <Button variant="primary" size="sm" className="shadow-xs">
-                Launch Shell
-                <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <Badge variant={role === 'athlete' ? 'teal' : role === 'academy' ? 'blue' : 'default'} className="capitalize">
+                  {role || 'User'}
+                </Badge>
+                <Link to={`/dashboard/${role || 'athlete'}`}>
+                  <Button variant="primary" size="sm" className="shadow-xs">
+                    Dashboard
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => signOut()}
+                  className="text-navy-600 hover:text-rose-600 p-2"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link to="/login">
+                  <Button variant="ghost" size="sm" className="text-navy-700">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="primary" size="sm" className="shadow-xs">
+                    Get Started
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Hamburger Toggle */}
           <div className="flex items-center gap-2 sm:hidden">
-            <Link to="/dashboard">
-              <Button variant="primary" size="sm" className="text-xs px-2.5 h-8">
-                Shell
-              </Button>
-            </Link>
+            {user ? (
+              <Link to={`/dashboard/${role || 'athlete'}`}>
+                <Button variant="primary" size="sm" className="text-xs px-2.5 h-8">
+                  Portal
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/login">
+                <Button variant="primary" size="sm" className="text-xs px-2.5 h-8">
+                  Sign In
+                </Button>
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -97,67 +128,51 @@ export function PublicHeader() {
                 </a>
               ))}
               <div className="pt-3 border-t border-navy-100 flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="md"
-                  className="w-full justify-center"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setInfoModalOpen(true);
-                  }}
-                >
-                  Sign In (Pilot Status)
-                </Button>
-                <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="primary" size="md" className="w-full justify-center">
-                    Explore Internal Dashboard Shell
-                    <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </Button>
-                </Link>
+                {user ? (
+                  <>
+                    <div className="px-3 py-1 flex items-center justify-between text-xs text-navy-600">
+                      <span>Signed in as <strong>{profile?.full_name || user.email}</strong></span>
+                      <Badge variant="teal">{role}</Badge>
+                    </div>
+                    <Link to={`/dashboard/${role || 'athlete'}`} onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="primary" size="md" className="w-full justify-center">
+                        Open {role?.toUpperCase()} Dashboard
+                        <ArrowRight className="h-4 w-4 ml-1.5" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      className="w-full justify-center text-rose-600 border-rose-200 hover:bg-rose-50"
+                      onClick={() => {
+                        signOut();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" size="md" className="w-full justify-center">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="primary" size="md" className="w-full justify-center">
+                        Register for PratibhaScan
+                        <ArrowRight className="h-4 w-4 ml-1.5" />
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </div>
         )}
       </header>
-
-      {/* Accessible Informational Modal for Sign In in Phase 1 */}
-      <Modal
-        isOpen={infoModalOpen}
-        onClose={() => setInfoModalOpen(false)}
-        title="Phase 1 Foundation Preview"
-        description="Notice regarding Authentication and Account Access"
-        footerActions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setInfoModalOpen(false)}>
-              Close
-            </Button>
-            <Link to="/dashboard">
-              <Button variant="primary" size="sm" onClick={() => setInfoModalOpen(false)}>
-                Explore Dashboard Shell
-              </Button>
-            </Link>
-          </div>
-        }
-      >
-        <div className="space-y-3">
-          <div className="p-3.5 rounded-xl bg-primary-50 border border-primary-200 text-primary-900 flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary-600 shrink-0 mt-0.5" />
-            <div className="text-xs space-y-1">
-              <p className="font-bold">Production-Oriented Phase 1 Foundation</p>
-              <p className="text-primary-700">
-                You are currently viewing the Phase 1 Foundation &amp; UI System developed by KAARYAN LABS.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-navy-50 border border-navy-200 text-navy-700 flex items-start gap-2.5">
-            <ShieldAlert className="h-4 w-4 text-navy-500 shrink-0 mt-0.5" />
-            <p className="text-xs leading-relaxed">
-              In accordance with architectural guidelines, live authentication sessions and database write operations will be enabled in Phase 2 with Supabase Auth &amp; PostgreSQL. You can freely explore the three role-aware dashboard shells right now without logging in.
-            </p>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }

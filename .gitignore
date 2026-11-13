@@ -36,3 +36,8 @@ dist-ssr/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Temporary CLI & profile artifacts
+.tmp_user/
+.supabase/
+

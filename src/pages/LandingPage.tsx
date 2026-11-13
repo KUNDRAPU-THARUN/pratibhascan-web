@@ -47,20 +47,17 @@ export function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-          <Link to="/dashboard">
+          <Link to="/register">
             <Button size="lg" variant="primary" className="w-full sm:w-auto shadow-sm">
-              Explore Dashboard Shell
+              Get Started with PratibhaScan
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => setInquiryModalOpen(true)}
-          >
-            Inquire for Pilot Deployment
-          </Button>
+          <Link to="/preview">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto">
+              Explore Demo Preview
+            </Button>
+          </Link>
         </div>
 
         {/* Factual Trust Indicators */}
@@ -393,28 +390,29 @@ export function LandingPage() {
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-3xl mx-auto leading-tight">
-            Ready to Explore the PratibhaScan Architecture?
+            Ready to Standardize Sports Talent Identification?
           </h2>
 
           <p className="text-sm sm:text-base text-navy-300 max-w-2xl mx-auto leading-relaxed">
-            Experience the Phase 1 Foundation: Explore the shared dashboard shell, inspect the three role-aware navigation structures, and review the standardized protocol engine.
+            Register your Athlete profile, register your Academy cohort, or configure your Institution sports board today with real Supabase authentication and auditable data governance.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <Link to="/dashboard">
+            <Link to="/register">
               <Button size="lg" variant="primary">
-                Open Dashboard Shell
+                Create Free Account
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-white border-navy-700 hover:bg-navy-800"
-              onClick={() => setInquiryModalOpen(true)}
-            >
-              Contact KAARYAN LABS
-            </Button>
+            <Link to="/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-white border-navy-700 hover:bg-navy-800"
+              >
+                Sign In to Portal
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

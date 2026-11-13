@@ -62,6 +62,7 @@ export interface Database {
           suspension_reason?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       academies: {
         Row: {
@@ -108,6 +109,7 @@ export interface Database {
           verified?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       institutions: {
         Row: {
@@ -148,6 +150,7 @@ export interface Database {
           verified?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       athletes: {
         Row: {
@@ -188,6 +191,7 @@ export interface Database {
           composite_talent_score?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       athlete_affiliations: {
         Row: {
@@ -225,6 +229,7 @@ export interface Database {
           approved_by?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       evaluator_authorizations: {
         Row: {
@@ -256,6 +261,7 @@ export interface Database {
           accreditation_number?: string | null;
           status?: 'active' | 'suspended' | 'revoked';
         };
+        Relationships: [];
       };
       assessment_protocols: {
         Row: {
@@ -293,6 +299,7 @@ export interface Database {
           methodology?: string | null;
           equipment_required?: string[];
         };
+        Relationships: [];
       };
       assessment_sessions: {
         Row: {
@@ -333,6 +340,7 @@ export interface Database {
           verified_by?: string | null;
           notes?: string | null;
         };
+        Relationships: [];
       };
       assessment_results: {
         Row: {
@@ -370,7 +378,12 @@ export interface Database {
           percentile_rank?: number | null;
           status?: 'pending' | 'verified' | 'flagged';
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

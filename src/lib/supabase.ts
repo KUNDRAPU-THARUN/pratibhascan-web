@@ -1,32 +1,24 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database.types';
 
 /**
  * PratibhaScan Supabase Client Configuration
- * Phase 1: Architectural Preparation
+ * Phase 2B: Live Supabase Integration (Local Environment)
  *
- * NOTE: In Phase 1, we do NOT connect to a live production database.
- * This client is configured with placeholder/environment fallbacks.
- * Live authentication, PostgreSQL queries, and Storage will be activated in Phase 2.
+ * Connects securely to the local Supabase container stack using the public anon key.
+ * Service role and secret keys are NEVER exposed to the frontend.
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-let supabaseInstance: SupabaseClient | null = null;
-
-try {
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-} catch {
-  // Graceful fallback for non-production environments
-  supabaseInstance = null;
-}
-
-export const supabase = supabaseInstance;
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 /**
  * Predicate to safely check if valid Supabase credentials have been configured
@@ -36,8 +28,8 @@ export const isSupabaseConfigured = (): boolean => {
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
   return Boolean(
     url &&
-    url !== 'https://placeholder-project.supabase.co' &&
+    !url.includes('placeholder') &&
     key &&
-    key !== 'placeholder-anon-key'
+    !key.includes('placeholder')
   );
 };
