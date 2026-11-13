@@ -88,7 +88,7 @@ export function AppRoutes() {
       {/* Separate Demonstration Preview Mode (Publicly Accessible, Non-authenticated) */}
       <Route path="/preview" element={<DashboardShell isPreview={true} />}>
         <Route index element={<Navigate to="/preview/athlete" replace />} />
-        <Route path="athlete" element={<AthleteView />} />
+        <Route path="athlete" element={<AthleteView isPreview={true} />} />
         <Route path="academy" element={<AcademyView />} />
         <Route path="institution" element={<InstitutionView />} />
         <Route path="assessments" element={<AssessmentsView />} />
