@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { DatabaseRole } from '@/types/database.types';
 import type { RegisterFormData, LoginFormData } from './authSchemas';
 
@@ -196,8 +196,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
-        if (!supabase) {
-          setIsLoading(false);
+        if (!supabase || !isSupabaseConfigured()) {
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setIsLoading(false);
+          }
           return;
         }
 
@@ -228,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
-    if (!supabase) return;
+    if (!supabase || !isSupabaseConfigured()) return;
 
     const {
       data: { subscription },
@@ -266,7 +271,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign up with role and full name metadata
   const signUp = async (data: RegisterFormData): Promise<{ error: Error | null; requiresEmailConfirmation: boolean }> => {
     try {
-      if (!supabase) throw new Error('Supabase client is not available');
+      if (!supabase || !isSupabaseConfigured()) {
+        throw new Error(
+          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
+        );
+      }
 
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -303,7 +312,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with email and password
   const signIn = async (data: LoginFormData): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase) throw new Error('Supabase client is not available');
+      if (!supabase || !isSupabaseConfigured()) {
+        throw new Error(
+          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
+        );
+      }
 
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -349,7 +362,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Send password reset email
   const resetPassword = async (email: string): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase) throw new Error('Supabase client is not available');
+      if (!supabase || !isSupabaseConfigured()) {
+        throw new Error(
+          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
+        );
+      }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -364,7 +381,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Update password (used on /reset-password)
   const updatePassword = async (password: string): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase) throw new Error('Supabase client is not available');
+      if (!supabase || !isSupabaseConfigured()) {
+        throw new Error(
+          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
+        );
+      }
 
       const { error } = await supabase.auth.updateUser({ password });
       return { error };

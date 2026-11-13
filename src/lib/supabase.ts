@@ -3,14 +3,23 @@ import type { Database } from '@/types/database.types';
 
 /**
  * PratibhaScan Supabase Client Configuration
- * Phase 2B: Live Supabase Integration (Local Environment)
+ * Supports both local development (Docker stack) and production Vercel deployments.
  *
- * Connects securely to the local Supabase container stack using the public anon key.
- * Service role and secret keys are NEVER exposed to the frontend.
+ * In local dev, falls back to the local Supabase container.
+ * In production builds where environment variables are not yet configured in Vercel,
+ * safe fallback placeholders are used to prevent top-level runtime exceptions (e.g. "supabaseKey is required").
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const fallbackUrl = import.meta.env.DEV
+  ? 'http://127.0.0.1:54321'
+  : 'https://placeholder-project.supabase.co';
+
+const fallbackAnonKey = import.meta.env.DEV
+  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+  : 'placeholder-anon-key-configure-in-vercel';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || fallbackUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || fallbackAnonKey;
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from './AuthContext';
 import { forgotPasswordSchema } from './authSchemas';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { AlertCircle, CheckCircle2, Mail, ArrowLeft } from 'lucide-react';
 
 export function ForgotPasswordPage() {
@@ -68,17 +69,19 @@ export function ForgotPasswordPage() {
               <p className="text-xs text-navy-600 mt-1 leading-relaxed">
                 If an account exists for <strong className="text-navy-900">{email}</strong>, you will receive a secure password reset link shortly.
               </p>
-              <p className="text-[11px] text-navy-500 mt-2">
-                In local development, check your message in Mailpit at{' '}
-                <a
-                  href="http://127.0.0.1:54324"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-primary-600 underline"
-                >
-                  http://127.0.0.1:54324
-                </a>.
-              </p>
+              {import.meta.env.DEV && (
+                <p className="text-[11px] text-navy-500 mt-2">
+                  In local development, check your message in Mailpit at{' '}
+                  <a
+                    href="http://127.0.0.1:54324"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-primary-600 underline"
+                  >
+                    http://127.0.0.1:54324
+                  </a>.
+                </p>
+              )}
             </div>
             <Link to="/login" className="block pt-2">
               <Button variant="outline" className="w-full">
@@ -90,6 +93,21 @@ export function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} noValidate>
             <CardContent className="space-y-4">
+              {!isSupabaseConfigured() && (
+                <div
+                  className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5 text-amber-900 text-xs"
+                  role="alert"
+                >
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-amber-950">Backend Supabase Not Connected</p>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      To enable live password recovery in production, add <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> to your Vercel Project Settings.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div
                   className="rounded-lg bg-rose-50 border border-rose-200 p-3 flex items-start gap-3 text-rose-800 text-xs"

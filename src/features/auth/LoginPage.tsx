@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { useAuth } from './AuthContext';
 import { loginSchema } from './authSchemas';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { AlertCircle, Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export function LoginPage() {
@@ -90,6 +91,24 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <CardContent className="space-y-4">
+            {!isSupabaseConfigured() && (
+              <div
+                className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5 text-amber-900 text-xs"
+                role="alert"
+              >
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-amber-950">Backend Supabase Not Connected</p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    To enable live authentication in production, add <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> to your Vercel Project Settings. You can also explore the{' '}
+                    <Link to="/preview" className="font-bold underline text-amber-950 hover:text-primary-700">
+                      Interactive Demo Preview
+                    </Link>.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {formError && (
               <div
                 className="rounded-lg bg-rose-50 border border-rose-200 p-3 flex items-start gap-3 text-rose-800 text-xs animate-in fade-in"
