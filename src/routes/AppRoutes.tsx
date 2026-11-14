@@ -8,6 +8,7 @@ import { AcademyView } from '@/features/academy/AcademyView';
 import { InstitutionView } from '@/features/institution/InstitutionView';
 import { AssessmentsView } from '@/features/assessments/AssessmentsView';
 import { DesignSystemView } from '@/features/design-system/DesignSystemView';
+import { PoseDetectionView } from '@/features/pose-detection';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
@@ -82,6 +83,7 @@ export function AppRoutes() {
           }
         />
         <Route path="assessments" element={<AssessmentsView />} />
+        <Route path="pose-detection" element={<PoseDetectionView />} />
         <Route path="design-system" element={<DesignSystemView />} />
       </Route>
 
@@ -92,6 +94,7 @@ export function AppRoutes() {
         <Route path="academy" element={<AcademyView isPreview={true} />} />
         <Route path="institution" element={<InstitutionView isPreview={true} />} />
         <Route path="assessments" element={<AssessmentsView />} />
+        <Route path="pose-detection" element={<PoseDetectionView isPreview={true} />} />
         <Route path="design-system" element={<DesignSystemView />} />
       </Route>
 

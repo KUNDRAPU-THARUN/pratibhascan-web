@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileText,
   Palette,
+  Activity,
   ExternalLink,
   X,
   Layers,
@@ -188,11 +189,25 @@ export function DashboardSidebar({
             </Link>
 
             <Link
-              to="/dashboard/design-system"
+              to={isPreview ? '/preview/pose-detection' : '/dashboard/pose-detection'}
               onClick={onClose}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all',
-                location.pathname === '/dashboard/design-system'
+                location.pathname.includes('/pose-detection')
+                  ? 'bg-primary-50 text-primary-700 font-bold'
+                  : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
+              )}
+            >
+              <Activity className="h-4 w-4 text-teal-600" />
+              <span>AI Pose Studio</span>
+            </Link>
+
+            <Link
+              to={isPreview ? '/preview/design-system' : '/dashboard/design-system'}
+              onClick={onClose}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all',
+                location.pathname.includes('/design-system')
                   ? 'bg-primary-50 text-primary-700 font-bold'
                   : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
               )}
