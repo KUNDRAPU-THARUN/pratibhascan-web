@@ -500,7 +500,7 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                     {data.benchmarks.sprint30m.bestScore}s
                   </p>
                   <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                    {data.benchmarks.sprint30m.percentile ? `${data.benchmarks.sprint30m.percentile}th Percentile` : 'Verified Score'}
+                    Verified Personal Best
                   </span>
                 </>
               ) : (
@@ -527,7 +527,7 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                     {data.benchmarks.vertJump.bestScore} cm
                   </p>
                   <span className="text-[11px] font-semibold text-secondary-700 bg-secondary-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                    {data.benchmarks.vertJump.percentile ? `${data.benchmarks.vertJump.percentile}th Percentile` : 'Verified Score'}
+                    Verified Personal Best
                   </span>
                 </>
               ) : (
@@ -554,7 +554,7 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                     Level {data.benchmarks.beepTest.bestScore}
                   </p>
                   <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                    {data.benchmarks.beepTest.percentile ? `${data.benchmarks.beepTest.percentile}th Percentile` : 'Verified Score'}
+                    Verified Personal Best
                   </span>
                 </>
               ) : (
@@ -600,7 +600,7 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                       {session.verified ? (
                         <span className="inline-flex items-center text-xs font-semibold text-teal-800 bg-teal-100 px-2.5 py-0.5 rounded-full">
                           <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          Officially Verified
+                          Organization Verified
                         </span>
                       ) : (
                         <span className="inline-flex items-center text-xs font-semibold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
@@ -620,7 +620,7 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                           <th className="px-4 py-2.5">Trial 2</th>
                           <th className="px-4 py-2.5">Trial 3</th>
                           <th className="px-4 py-2.5 font-bold text-navy-900">Best Mark</th>
-                          <th className="px-4 py-2.5 text-right">Percentile</th>
+                          <th className="px-4 py-2.5 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-navy-100 bg-white">
@@ -635,13 +635,9 @@ export function AthleteView({ isPreview = false }: AthleteViewProps) {
                               {r.bestScore} {r.unit}
                             </td>
                             <td className="px-4 py-3 text-right">
-                              {r.percentileRank !== null ? (
-                                <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md">
-                                  {r.percentileRank}th %ile
-                                </span>
-                              ) : (
-                                <span className="text-navy-400 text-xs">Standardized</span>
-                              )}
+                              <span className="text-xs font-medium text-navy-600 capitalize">
+                                {r.status}
+                              </span>
                             </td>
                           </tr>
                         ))}

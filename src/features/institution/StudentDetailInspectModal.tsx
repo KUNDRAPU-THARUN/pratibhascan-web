@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ import {
   Loader2,
   FileText,
   Copy,
+  Play,
 } from 'lucide-react';
 
 interface StudentDetailInspectModalProps {
@@ -143,9 +145,21 @@ export function StudentDetailInspectModal({
       title={`${student.fullName} — Student Passport`}
       description="Authorized student baseline, physical development metrics, and official school testing logs."
       footerActions={
-        <Button variant="outline" size="sm" onClick={onClose} disabled={isProcessing}>
-          Close
-        </Button>
+        <div className="flex items-center justify-between w-full">
+          {student.status === 'active' ? (
+            <Link to="/dashboard/assessments">
+              <Button variant="primary" size="sm" className="text-xs font-semibold shadow-xs">
+                <Play className="h-3 w-3 mr-1 fill-current" />
+                Conduct Assessment
+              </Button>
+            </Link>
+          ) : (
+            <div />
+          )}
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isProcessing}>
+            Close
+          </Button>
+        </div>
       }
     >
       <div className="space-y-5">

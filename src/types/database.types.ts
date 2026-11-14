@@ -312,6 +312,9 @@ export interface Database {
           venue: string | null;
           verified: boolean;
           verified_by: string | null;
+          verification_tier: 'draft' | 'organization_recorded' | 'two_person_verified' | null;
+          secondary_reviewer_id: string | null;
+          review_notes: string | null;
           notes: string | null;
           created_at: string;
         };
@@ -325,6 +328,9 @@ export interface Database {
           venue?: string | null;
           verified?: boolean;
           verified_by?: string | null;
+          verification_tier?: 'draft' | 'organization_recorded' | 'two_person_verified' | null;
+          secondary_reviewer_id?: string | null;
+          review_notes?: string | null;
           notes?: string | null;
           created_at?: string;
         };
@@ -338,6 +344,9 @@ export interface Database {
           venue?: string | null;
           verified?: boolean;
           verified_by?: string | null;
+          verification_tier?: 'draft' | 'organization_recorded' | 'two_person_verified' | null;
+          secondary_reviewer_id?: string | null;
+          review_notes?: string | null;
           notes?: string | null;
         };
         Relationships: [];
@@ -352,7 +361,7 @@ export interface Database {
           trial_3: number | null;
           best_score: number;
           percentile_rank: number | null;
-          status: 'pending' | 'verified' | 'flagged';
+          status: 'pending' | 'verified' | 'two_person_verified' | 'flagged';
           created_at: string;
         };
         Insert: {
@@ -364,7 +373,7 @@ export interface Database {
           trial_3?: number | null;
           best_score: number;
           percentile_rank?: number | null;
-          status?: 'pending' | 'verified' | 'flagged';
+          status?: 'pending' | 'verified' | 'two_person_verified' | 'flagged';
           created_at?: string;
         };
         Update: {
@@ -376,7 +385,100 @@ export interface Database {
           trial_3?: number | null;
           best_score?: number;
           percentile_rank?: number | null;
-          status?: 'pending' | 'verified' | 'flagged';
+          status?: 'pending' | 'verified' | 'two_person_verified' | 'flagged';
+        };
+        Relationships: [];
+      };
+      guardian_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          full_name: string;
+          phone: string;
+          email: string;
+          relationship: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          full_name: string;
+          phone: string;
+          email: string;
+          relationship?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          full_name?: string;
+          phone?: string;
+          email?: string;
+          relationship?: string;
+        };
+        Relationships: [];
+      };
+      guardian_athlete_links: {
+        Row: {
+          id: string;
+          guardian_profile_id: string;
+          athlete_id: string;
+          relationship: string;
+          verified: boolean;
+          verified_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          guardian_profile_id: string;
+          athlete_id: string;
+          relationship?: string;
+          verified?: boolean;
+          verified_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          guardian_profile_id?: string;
+          athlete_id?: string;
+          relationship?: string;
+          verified?: boolean;
+          verified_at?: string | null;
+        };
+        Relationships: [];
+      };
+      guardian_consents: {
+        Row: {
+          id: string;
+          guardian_athlete_link_id: string;
+          consent_type: string;
+          granted: boolean;
+          granted_at: string | null;
+          revoked_at: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          guardian_athlete_link_id: string;
+          consent_type: string;
+          granted: boolean;
+          granted_at?: string | null;
+          revoked_at?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          guardian_athlete_link_id?: string;
+          consent_type?: string;
+          granted?: boolean;
+          granted_at?: string | null;
+          revoked_at?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
         };
         Relationships: [];
       };

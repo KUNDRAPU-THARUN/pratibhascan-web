@@ -167,8 +167,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setOrganization(acadData as unknown as AcademyOrg);
           setIsOnboarded(true);
         } else {
-          setOrganization(null);
-          setIsOnboarded(false);
+          // Check if user is an accredited staff evaluator for an academy
+          const { data: authRecord } = await supabase
+            .from('evaluator_authorizations')
+            .select('academy_id, academies(*)')
+            .eq('evaluator_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          const record = authRecord as any;
+          if (record?.academies) {
+            setOrganization(record.academies as unknown as AcademyOrg);
+            setIsOnboarded(true);
+          } else {
+            setOrganization(null);
+            setIsOnboarded(false);
+          }
         }
       } else if (userRole === 'institution') {
         const { data: instData } = await supabase
@@ -181,8 +195,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setOrganization(instData as unknown as InstitutionOrg);
           setIsOnboarded(true);
         } else {
-          setOrganization(null);
-          setIsOnboarded(false);
+          // Check if user is an accredited staff evaluator for an institution
+          const { data: authRecord } = await supabase
+            .from('evaluator_authorizations')
+            .select('institution_id, institutions(*)')
+            .eq('evaluator_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          const record = authRecord as any;
+          if (record?.institutions) {
+            setOrganization(record.institutions as unknown as InstitutionOrg);
+            setIsOnboarded(true);
+          } else {
+            setOrganization(null);
+            setIsOnboarded(false);
+          }
         }
       }
     } catch (err) {

@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -12,6 +13,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    open: true,
+    open: false,
+  },
+  test: {
+    include: ['src/**/*.test.ts'],
+    exclude: ['e2e/**', 'node_modules/**'],
   },
 });

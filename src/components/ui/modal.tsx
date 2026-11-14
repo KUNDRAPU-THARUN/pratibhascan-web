@@ -72,11 +72,11 @@ export function Modal({
       <div
         ref={modalRef}
         className={cn(
-          'relative w-full rounded-2xl bg-white p-6 text-left shadow-elevated border border-navy-200/80 transition-all z-10 animate-in zoom-in-95',
+          'relative w-full max-h-[90vh] flex flex-col rounded-2xl bg-white p-5 sm:p-6 text-left shadow-elevated border border-navy-200/80 transition-all z-10 animate-in zoom-in-95 my-auto',
           sizeClasses[size]
         )}
       >
-        <div className="flex items-start justify-between pb-3 border-b border-navy-100">
+        <div className="flex items-start justify-between pb-3 border-b border-navy-100 shrink-0">
           <div>
             <h3 id={titleId} className="text-lg font-bold text-navy-900 leading-tight">
               {title}
@@ -97,9 +97,11 @@ export function Modal({
           </button>
         </div>
 
-        <div className="py-4 text-sm text-navy-600 leading-relaxed">{children}</div>
+        <div className="py-3 sm:py-4 text-sm text-navy-600 leading-relaxed overflow-y-auto flex-1">
+          {children}
+        </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-navy-100">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-navy-100 shrink-0">
           {footerActions ? (
             footerActions
           ) : (

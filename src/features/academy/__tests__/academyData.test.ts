@@ -190,11 +190,12 @@ describe('Academy Feature — Unit Tests & Validation Suites', () => {
     it('treats 17-year-olds on the cusp as minors until their 18th birthday', () => {
       const today = new Date();
       // Born 18 years ago tomorrow -> still 17 today
-      const almost18 = new Date(today);
-      almost18.setFullYear(today.getFullYear() - 18);
-      almost18.setDate(today.getDate() + 1);
-
-      const dobString = almost18.toISOString().split('T')[0];
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const y = tomorrow.getFullYear() - 18;
+      const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const d = String(tomorrow.getDate()).padStart(2, '0');
+      const dobString = `${y}-${m}-${d}`;
       const age = calculateAge(dobString);
       expect(age).toBe(17);
       expect(age < 18).toBe(true);
