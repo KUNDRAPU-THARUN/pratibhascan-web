@@ -312,8 +312,16 @@ export function usePoseDetection({
    * Toggles pause/resume tracking.
    */
   const togglePause = useCallback(() => {
-    setIsPaused((prev) => !prev);
-  }, []);
+    setIsPaused((prev) => {
+      const next = !prev;
+      if (!next) {
+        setTrackingStatus(isPersonDetected ? 'tracking' : 'no_person_detected');
+      } else {
+        setTrackingStatus('paused');
+      }
+      return next;
+    });
+  }, [isPersonDetected]);
 
   /**
    * Cleanup on complete unmount.

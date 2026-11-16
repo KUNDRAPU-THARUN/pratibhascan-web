@@ -24,6 +24,13 @@ export interface JointAngles {
   trunkAngle: number | null; // Trunk inclination from vertical (deg): 0° upright, ~30-50° squat
   side: TrackedSide;
   confidence: number; // 0.0 - 1.0 confidence across critical landmarks
+  leftKneeAngle?: number | null;
+  rightKneeAngle?: number | null;
+  leftHipAngle?: number | null;
+  rightHipAngle?: number | null;
+  depthProxy?: SquatDepthClassification;
+  leftConfidence?: number;
+  rightConfidence?: number;
 }
 
 export interface SquatConfig {
@@ -52,6 +59,8 @@ export const DEFAULT_SQUAT_CONFIG: SquatConfig = {
   minConfidenceThreshold: 0.5,
 };
 
+export type SquatDepthClassification = 'above_parallel' | 'parallel' | 'below_parallel' | 'unknown';
+
 export interface RepetitionRecord {
   repNumber: number;
   durationMs: number;
@@ -59,6 +68,14 @@ export interface RepetitionRecord {
   maxHipFlexionAngle: number;
   completedAt: number;
   side: TrackedSide;
+  // Phase 4C Extended Metrics:
+  isCompleted?: boolean; // True for valid full rep, false for shallow/partial rep
+  depthClassification?: SquatDepthClassification;
+  descentDurationMs?: number;
+  bottomDurationMs?: number;
+  ascentDurationMs?: number;
+  maxTrunkLeanAngle?: number;
+  qualityFeedback?: string;
 }
 
 export interface SquatSessionMetrics {
@@ -75,4 +92,13 @@ export interface SquatSessionMetrics {
   sessionDurationSec: number;
   isSessionActive: boolean;
   repHistory: RepetitionRecord[];
+  // Phase 4C Extended Live Biomechanical Telemetry:
+  leftKneeAngle?: number | null;
+  rightKneeAngle?: number | null;
+  leftHipAngle?: number | null;
+  rightHipAngle?: number | null;
+  depthProxy?: SquatDepthClassification;
+  trackingCoveragePercent?: number; // % of frames with valid landmarks
+  movementInterruptions?: number; // Number of tracking drops or pauses during movement
+  currentFeedbackMessage?: string; // Conservative live guidance
 }

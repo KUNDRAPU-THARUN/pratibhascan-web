@@ -21,7 +21,7 @@
  */
 
 import { NormalizedLandmark } from '../types/pose.types';
-import { JointAngles, TrackedSide } from '../types/squat.types';
+import { JointAngles, SquatDepthClassification, TrackedSide } from '../types/squat.types';
 
 // Key BlazePose Landmark Indices
 export const POSE_LANDMARKS = {
@@ -198,6 +198,41 @@ export function evaluateSideVisibility(
 }
 
 /**
+ * Observable planar depth proxy calculated from vertical offset:
+ * Δy = y_hip - y_knee in normalized viewport coordinates (where y increases downwards).
+ *
+ * Biomechanical context:
+ * - When standing upright, hip is above knee: hip.y < knee.y (diff < 0).
+ * - When thighs reach parallel to ground, hip crease aligns with knee center: |diff| ≤ 0.02.
+ * - When in deep squat (below parallel), hip crease sinks below knee top: hip.y > knee.y (diff > 0.02).
+ *
+ * Limitation: Planar visual proxy; sensitive to camera vertical placement height and elevation pitch angle.
+ *
+ * @param hip Hip joint landmark
+ * @param knee Knee joint landmark
+ * @returns Depth classification: 'above_parallel', 'parallel', 'below_parallel', or 'unknown'
+ */
+export function calculateSquatDepthProxy(
+  hip: Point2D | null | undefined,
+  knee: Point2D | null | undefined
+): SquatDepthClassification {
+  if (!hip || !knee || !Number.isFinite(hip.y) || !Number.isFinite(knee.y)) {
+    return 'unknown';
+  }
+
+  // y increases downward in screen space:
+  const diff = hip.y - knee.y;
+
+  if (diff > 0.02) {
+    return 'below_parallel';
+  } else if (Math.abs(diff) <= 0.02) {
+    return 'parallel';
+  } else {
+    return 'above_parallel';
+  }
+}
+
+/**
  * Computes complete joint angles for squat analysis from 33 MediaPipe pose landmarks.
  * Performs automatic side selection (profile view or bilateral front view).
  */
@@ -217,6 +252,13 @@ export function calculateSquatAngles(
       trunkAngle: null,
       side: 'unknown',
       confidence: Math.max(leftConfidence, rightConfidence),
+      leftKneeAngle: null,
+      rightKneeAngle: null,
+      leftHipAngle: null,
+      rightHipAngle: null,
+      depthProxy: 'unknown',
+      leftConfidence,
+      rightConfidence,
     };
   }
 
@@ -235,6 +277,10 @@ export function calculateSquatAngles(
     landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
     landmarks[POSE_LANDMARKS.LEFT_HIP]
   );
+  const leftDepthProxy = calculateSquatDepthProxy(
+    landmarks[POSE_LANDMARKS.LEFT_HIP],
+    landmarks[POSE_LANDMARKS.LEFT_KNEE]
+  );
 
   // Right side angles
   const rightKneeAngle = calculateJointAngle(
@@ -251,10 +297,15 @@ export function calculateSquatAngles(
     landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
     landmarks[POSE_LANDMARKS.RIGHT_HIP]
   );
+  const rightDepthProxy = calculateSquatDepthProxy(
+    landmarks[POSE_LANDMARKS.RIGHT_HIP],
+    landmarks[POSE_LANDMARKS.RIGHT_KNEE]
+  );
 
   let finalKneeAngle: number | null = null;
   let finalHipAngle: number | null = null;
   let finalTrunkAngle: number | null = null;
+  let finalDepthProxy: SquatDepthClassification = 'unknown';
 
   if (primarySide === 'bilateral') {
     // Both sides visible: average valid angles
@@ -275,15 +326,26 @@ export function calculateSquatAngles(
     } else {
       finalTrunkAngle = leftTrunkAngle ?? rightTrunkAngle;
     }
+
+    // Bilateral depth proxy: below_parallel if either or average is below parallel
+    if (leftDepthProxy === 'below_parallel' || rightDepthProxy === 'below_parallel') {
+      finalDepthProxy = 'below_parallel';
+    } else if (leftDepthProxy === 'parallel' || rightDepthProxy === 'parallel') {
+      finalDepthProxy = 'parallel';
+    } else {
+      finalDepthProxy = 'above_parallel';
+    }
   } else if (primarySide === 'left') {
     finalKneeAngle = leftKneeAngle;
     finalHipAngle = leftHipAngle;
     finalTrunkAngle = leftTrunkAngle;
+    finalDepthProxy = leftDepthProxy;
   } else {
     // Right side
     finalKneeAngle = rightKneeAngle;
     finalHipAngle = rightHipAngle;
     finalTrunkAngle = rightTrunkAngle;
+    finalDepthProxy = rightDepthProxy;
   }
 
   return {
@@ -296,5 +358,12 @@ export function calculateSquatAngles(
       : primarySide === 'left'
       ? leftConfidence
       : rightConfidence,
+    leftKneeAngle,
+    rightKneeAngle,
+    leftHipAngle,
+    rightHipAngle,
+    depthProxy: finalDepthProxy,
+    leftConfidence,
+    rightConfidence,
   };
 }

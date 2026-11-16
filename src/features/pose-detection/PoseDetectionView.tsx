@@ -4,17 +4,20 @@
  * Product: PratibhaScan
  *
  * Professional, real-time computer vision studio leveraging MediaPipe Tasks Vision
- * for on-device 33-point human pose estimation.
+ * for on-device 33-point human pose estimation, camera calibration, and squat analysis.
  */
 
 import React, { useState, useRef } from 'react';
 import { useCamera } from './hooks/useCamera';
 import { usePoseDetection } from './hooks/usePoseDetection';
 import { useSquatCounter } from './hooks/useSquatCounter';
+import { useCalibration } from './hooks/useCalibration';
 import { CameraPreview } from './components/CameraPreview';
 import { CameraControls } from './components/CameraControls';
 import { PoseStatusPanel } from './components/PoseStatusPanel';
 import { SquatCounterPanel } from './components/SquatCounterPanel';
+import { CalibrationCard } from './components/CalibrationCard';
+import { SquatSessionSummaryModal } from './components/SquatSessionSummaryModal';
 import { CameraPermissionNotice } from './components/CameraPermissionNotice';
 import { ShieldCheck, AlertTriangle, Sparkles, Lock, Info, Dumbbell, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +36,19 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
   // Overlay visualization toggles
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [showLandmarks, setShowLandmarks] = useState(true);
+
+  // Calibration visibility & Summary Modal toggles
+  const [showCalibrationCard, setShowCalibrationCard] = useState(true);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+
+  // Calibration Engine
+  const {
+    calibrationState,
+    processCalibrationFrame,
+    resetCalibration,
+    forceCalibrate,
+    isCalibrated,
+  } = useCalibration();
 
   // Squat Biomechanics State Machine
   const {
@@ -81,6 +97,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
       minVisibilityThreshold: 0.5,
     },
     onLandmarksDetected: (landmarks, timestamp) => {
+      processCalibrationFrame(landmarks, timestamp);
       processSquatFrame(landmarks, timestamp);
     },
   });
@@ -90,7 +107,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
   const activeDeviceLabel = activeDevice?.label;
 
   return (
-    <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto pb-12 overflow-x-hidden">
       {/* 1. Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-navy-200 pb-5">
         <div className="space-y-1">
@@ -100,7 +117,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
             </h1>
             <Badge variant="default" className="bg-primary-50 text-primary-700 border-primary-200 font-bold text-[11px]">
               <Sparkles className="h-3 w-3 mr-1 text-primary-600" />
-              Phase 4B Biomechanics
+              Phase 4C Calibration &amp; Analytics
             </Badge>
             {isPreview && (
               <Badge variant="warning" className="text-[10px]">
@@ -109,7 +126,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
             )}
           </div>
           <p className="text-xs sm:text-sm text-navy-600">
-            Real-time biomechanical analysis and automated bodyweight squat repetition tracking
+            Real-time biomechanical analysis, camera framing calibration, and automated bodyweight squat tracking
           </p>
         </div>
 
@@ -159,7 +176,18 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
         />
       )}
 
-      {/* 3. Main Camera Viewport Panel */}
+      {/* 3. Camera Calibration & Framing Guidance Card (When in Squat mode & enabled) */}
+      {activeMode === 'squat' && showCalibrationCard && (
+        <CalibrationCard
+          calibrationState={calibrationState}
+          onRecalibrate={() => resetCalibration('User requested manual recalibration.')}
+          onAcceptCalibration={forceCalibrate}
+          isCameraActive={isCameraActive}
+          onStartCamera={() => startCamera()}
+        />
+      )}
+
+      {/* 4. Main Camera Viewport Panel */}
       <div className="space-y-4">
         <CameraPreview
           videoRef={videoRef}
@@ -172,7 +200,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
           onStartCamera={() => startCamera()}
         />
 
-        {/* 4. Interactive Camera Controls */}
+        {/* 5. Interactive Camera Controls */}
         <CameraControls
           cameraStatus={cameraStatus}
           isPaused={isPaused}
@@ -182,13 +210,16 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
           activeDeviceId={activeDeviceId}
           onStartCamera={() => startCamera()}
           onStopCamera={stopCamera}
-          onSwitchCamera={(devId) => switchCamera(devId)}
+          onSwitchCamera={(devId) => {
+            switchCamera(devId);
+            resetCalibration('Camera device switched.');
+          }}
           onTogglePause={togglePause}
           onToggleSkeleton={() => setShowSkeleton((prev) => !prev)}
           onToggleLandmarks={() => setShowLandmarks((prev) => !prev)}
         />
 
-        {/* 5. Active Mode Workspace: Squat Counter Panel vs Studio Telemetry */}
+        {/* 6. Active Mode Workspace: Squat Counter Panel vs Studio Telemetry */}
         {activeMode === 'squat' ? (
           <SquatCounterPanel
             metrics={squatMetrics}
@@ -196,6 +227,9 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
             onPause={pauseSquatSession}
             onReset={resetSquatSession}
             isCameraActive={isCameraActive}
+            onOpenSummary={() => setShowSummaryModal(true)}
+            onToggleCalibration={() => setShowCalibrationCard((prev) => !prev)}
+            isCalibrated={isCalibrated}
           />
         ) : (
           <PoseStatusPanel
@@ -210,7 +244,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
         )}
       </div>
 
-      {/* 6. Mandatory Privacy & Experimental Policy Cards */}
+      {/* 7. Mandatory Privacy & Experimental Policy Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         {/* Privacy Notice */}
         <div className="p-4 rounded-xl bg-teal-50/70 border border-teal-200/90 text-teal-950 flex items-start gap-3 shadow-xs">
@@ -240,7 +274,7 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
         </div>
       </div>
 
-      {/* 7. Technical Specifications Reference */}
+      {/* 8. Technical Specifications Reference */}
       <div className="p-4 rounded-xl border border-navy-200 bg-white text-navy-700 text-xs space-y-2">
         <div className="flex items-center gap-2 font-bold text-navy-900">
           <Info className="h-4 w-4 text-primary-600" />
@@ -251,6 +285,17 @@ export const PoseDetectionView: React.FC<PoseDetectionViewProps> = ({ isPreview 
           <code>@mediapipe/tasks-vision</code> v1.2.3) in <code>VIDEO</code> running mode. The model evaluates 33 3D anatomical landmarks per frame using WebAssembly and WebGL acceleration. Body coordinates and tracking points remain entirely in browser volatile memory and are never persisted to the Supabase database during this phase.
         </p>
       </div>
+
+      {/* 9. Session Summary Modal */}
+      <SquatSessionSummaryModal
+        isOpen={showSummaryModal}
+        onClose={() => setShowSummaryModal(false)}
+        onResetSession={() => {
+          resetSquatSession();
+          setShowSummaryModal(false);
+        }}
+        metrics={squatMetrics}
+      />
     </div>
   );
 };

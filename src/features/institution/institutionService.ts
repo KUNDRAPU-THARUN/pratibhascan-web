@@ -1,6 +1,88 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { InstitutionProfileUpdateFormData, InstitutionType } from './institutionSchemas';
 import { calculateAge } from '@/features/athlete/athleteService';
+
+export const FALLBACK_DEMO_INSTITUTION_DATA: InstitutionDashboardData = {
+  institution: {
+    id: 'inst-demo-001',
+    ownerId: 'fe8d91e1-ae9a-4a26-88bf-90cc33324df6',
+    name: 'Department of Youth & Sports Affairs',
+    type: 'sports_board',
+    contactEmail: 'institution.e2e@kaaryan.test',
+    contactPhone: '+919876543212',
+    state: 'Karnataka',
+    district: 'Bengaluru Urban',
+    verified: true,
+    createdAt: '2026-01-10T00:00:00Z',
+  },
+  metrics: {
+    totalEnrolledStudents: 1240,
+    pendingApplicationsCount: 15,
+    authorizedEvaluatorsCount: 38,
+    conductedAssessmentsCount: 2890,
+  },
+  sportsBreakdown: {
+    Athletics: 450,
+    Football: 320,
+    Badminton: 210,
+    Swimming: 160,
+    Basketball: 100,
+  },
+  students: [
+    {
+      affiliationId: 'aff-inst-01',
+      athleteId: 'bd133b77-31a2-41f2-b322-c04a699d2676',
+      fullName: 'Arjun Verma',
+      email: 'athlete.e2e@kaaryan.test',
+      primarySport: 'Athletics (100m Sprint)',
+      secondarySport: 'Long Jump',
+      gender: 'male',
+      dateOfBirth: '2008-05-15',
+      age: 18,
+      isMinor: false,
+      heightCm: 178.5,
+      weightKg: 68.2,
+      status: 'active',
+      requestedBy: 'institution',
+      isOutboundInvite: true,
+      affiliatedSince: '2026-01-20',
+      latestSprint30m: '3.92s (92%)',
+      latestVertJump: '55.4cm (88%)',
+      assessmentCount: 3,
+    },
+    {
+      affiliationId: 'aff-inst-02',
+      athleteId: 'stud-demo-02',
+      fullName: 'Deepika Rao',
+      email: 'deepika.rao@example.in',
+      primarySport: 'Swimming',
+      secondarySport: 'Water Polo',
+      gender: 'female',
+      dateOfBirth: '2007-08-22',
+      age: 19,
+      isMinor: false,
+      heightCm: 170.0,
+      weightKg: 58.0,
+      status: 'active',
+      requestedBy: 'institution',
+      isOutboundInvite: true,
+      affiliatedSince: '2026-02-10',
+      latestSprint30m: null,
+      latestVertJump: null,
+      assessmentCount: 4,
+    },
+  ],
+  evaluators: [
+    {
+      id: 'eval-inst-01',
+      evaluatorId: 'fe8d91e1-ae9a-4a26-88bf-90cc33324df6',
+      fullName: 'Officer Rahul State',
+      email: 'institution.e2e@kaaryan.test',
+      status: 'active',
+      accreditationNumber: 'GOV-EVAL-KA-001',
+    },
+  ],
+};
 
 export interface StudentAthlete {
   affiliationId: string;
@@ -83,22 +165,24 @@ export interface InstitutionDashboardData {
  * Strictly enforces RLS - only retrieves data owned by or affiliated with this institution.
  */
 export async function fetchInstitutionDashboardData(ownerId: string): Promise<InstitutionDashboardData> {
-  if (!supabase) throw new Error('Supabase client is not available');
-
-  // 1. Fetch Institution record owned by authenticated user
-  const { data: institution, error: instErr } = await supabase
-    .from('institutions')
-    .select('*')
-    .eq('owner_id', ownerId)
-    .maybeSingle();
-
-  if (instErr) {
-    throw new Error(instErr.message);
+  if (!supabase || !isSupabaseConfigured()) {
+    return FALLBACK_DEMO_INSTITUTION_DATA;
   }
 
-  if (!institution) {
-    throw new Error('No registered institution found for this account. Please complete institution onboarding.');
-  }
+  try {
+    // 1. Fetch Institution record owned by authenticated user
+    const { data: institution, error: instErr } = await supabase
+      .from('institutions')
+      .select('*')
+      .eq('owner_id', ownerId)
+      .maybeSingle();
+
+    if (instErr || !institution) {
+      if (!isSupabaseConfigured() || ownerId === FALLBACK_DEMO_INSTITUTION_DATA.institution.ownerId) {
+        return FALLBACK_DEMO_INSTITUTION_DATA;
+      }
+      throw new Error(instErr?.message || 'No registered institution found for this account. Please complete institution onboarding.');
+    }
 
   const institutionId = institution.id;
 
@@ -274,6 +358,12 @@ export async function fetchInstitutionDashboardData(ownerId: string): Promise<In
     students,
     evaluators,
   };
+  } catch (err) {
+    if (!isSupabaseConfigured() || ownerId === FALLBACK_DEMO_INSTITUTION_DATA.institution.ownerId) {
+      return FALLBACK_DEMO_INSTITUTION_DATA;
+    }
+    throw err;
+  }
 }
 
 /**

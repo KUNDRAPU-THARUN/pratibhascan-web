@@ -4,8 +4,9 @@
  * Product: PratibhaScan
  *
  * Dataset-independent validation runner for algorithmic accuracy benchmarking.
- * Generates synthetic kinematics representing clean reps, partial reps, tracking loss,
- * rapid twitches, and resting poses, and verifies state machine count fidelity.
+ * Generates synthetic kinematics across 16 reference scenarios including clean reps,
+ * partial reps, fast/slow cadences, occlusions, jitter, coordinate invalidation,
+ * and user pauses.
  */
 
 import { NormalizedLandmark } from '../types/pose.types';
@@ -16,32 +17,47 @@ export interface MotionFrame {
   hipAngle: number;
   confidence: number;
   timestampMs: number;
+  customLandmarks?: NormalizedLandmark[];
+  pauseAction?: 'pause' | 'resume';
 }
 
 export interface SyntheticSequence {
+  id: number;
   name: string;
   expectedReps: number;
   expectedPartials: number;
+  groundTruthMinAngle?: number;
+  groundTruthDurationMs?: number;
   frames: MotionFrame[];
+}
+
+export interface SequenceEvaluation {
+  id: number;
+  name: string;
+  expectedReps: number;
+  detectedReps: number;
+  expectedPartials: number;
+  detectedPartials: number;
+  repCountError: number;
+  angleErrorDeg: number | null;
+  timingErrorMs: number | null;
+  trackingCoveragePercent: number;
+  passed: boolean;
 }
 
 export interface ValidationResult {
   suiteName: string;
   totalSequences: number;
+  passedSequences: number;
   totalExpectedReps: number;
   totalDetectedReps: number;
   falsePositives: number;
   missedReps: number;
-  detectedPartials: number;
   expectedPartials: number;
+  detectedPartials: number;
+  maxAngleErrorDeg: number;
   pass: boolean;
-  sequenceBreakdown: {
-    name: string;
-    expected: number;
-    detected: number;
-    partialsDetected: number;
-    passed: boolean;
-  }[];
+  sequenceBreakdown: SequenceEvaluation[];
 }
 
 /**
@@ -51,9 +67,10 @@ export interface ValidationResult {
 export function generateLandmarksFromAngles(
   kneeAngleDeg: number,
   hipAngleDeg = 150,
-  confidence = 0.95
+  confidence = 0.95,
+  sideOverride?: 'left' | 'right'
 ): NormalizedLandmark[] {
-  const ankle = { x: 0.5, y: 0.9 };
+  const ankle = { x: 0.5, y: 0.88 };
   const L_shin = 0.22;
   const L_thigh = 0.22;
   const L_torso = 0.25;
@@ -61,8 +78,7 @@ export function generateLandmarksFromAngles(
   // Knee is above ankle
   const knee = { x: 0.5, y: ankle.y - L_shin };
 
-  // Angle of vector (ankle - knee) in screen space is 90° (pointing straight down in Y)
-  // To produce exact internal angle between (hip - knee) and (ankle - knee)
+  // Angle of vector (ankle - knee) in screen space is pointing straight down in Y
   const kneeRad = (kneeAngleDeg * Math.PI) / 180;
   const hip = {
     x: knee.x + L_thigh * Math.sin(Math.PI - kneeRad),
@@ -98,177 +114,412 @@ export function generateLandmarksFromAngles(
       y = ankle.y;
     }
 
+    let vis = confidence;
+    if (sideOverride === 'right' && (i === 11 || i === 23 || i === 25 || i === 27)) {
+      vis = 0.1; // Dim left side for unilateral right profile
+    } else if (sideOverride === 'left' && (i === 12 || i === 24 || i === 26 || i === 28)) {
+      vis = 0.1; // Dim right side for unilateral left profile
+    }
+
     return {
       x,
       y,
       z: 0.0,
-      visibility: confidence,
-      presence: confidence,
+      visibility: vis,
+      presence: vis,
     };
   });
 }
 
 /**
- * Creates synthetic test sequences representing common real-world athletic scenarios.
+ * Creates 16 synthetic test sequences representing common real-world athletic scenarios.
  */
 export function createSyntheticTestSequences(): SyntheticSequence[] {
   const fps = 30;
   const frameIntervalMs = 1000 / fps; // ~33.3ms per frame
 
-  // 1. Clean Repetition Generator (standing 175° -> bottom 90° -> standing 175°) over 2.0 seconds
-  const createCleanRepFrames = (startMs: number, repCount: number): MotionFrame[] => {
+  // Helper: Generates smooth trajectory frames for a single rep
+  const generateRepTrajectory = (
+    startMs: number,
+    standingKnee = 175,
+    bottomKnee = 90,
+    descentFrames = 24,
+    bottomFrames = 4,
+    ascentFrames = 24,
+    standingHoldFrames = 10,
+    confidence = 0.95
+  ): MotionFrame[] => {
     const frames: MotionFrame[] = [];
     let curTime = startMs;
 
-    for (let r = 0; r < repCount; r++) {
-      // Standing hold: 300ms (10 frames)
-      for (let f = 0; f < 10; f++) {
-        frames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: curTime });
-        curTime += frameIntervalMs;
-      }
-      // Descent: 800ms (24 frames) from 175° down to 88°
-      for (let f = 0; f < 24; f++) {
-        const prog = (f + 1) / 24;
-        const knee = 175 - prog * (175 - 88);
-        const hip = 170 - prog * (170 - 75);
-        frames.push({ kneeAngle: knee, hipAngle: hip, confidence: 0.95, timestampMs: curTime });
-        curTime += frameIntervalMs;
-      }
-      // Bottom hold: 100ms (3 frames) at 88°
-      for (let f = 0; f < 3; f++) {
-        frames.push({ kneeAngle: 88, hipAngle: 75, confidence: 0.95, timestampMs: curTime });
-        curTime += frameIntervalMs;
-      }
-      // Ascent: 800ms (24 frames) from 88° up to 175°
-      for (let f = 0; f < 24; f++) {
-        const prog = (f + 1) / 24;
-        const knee = 88 + prog * (175 - 88);
-        const hip = 75 + prog * (170 - 75);
-        frames.push({ kneeAngle: knee, hipAngle: hip, confidence: 0.95, timestampMs: curTime });
-        curTime += frameIntervalMs;
-      }
-      // Cooldown standing hold: 400ms (12 frames)
-      for (let f = 0; f < 12; f++) {
-        frames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: curTime });
-        curTime += frameIntervalMs;
-      }
+    // Standing hold
+    for (let f = 0; f < standingHoldFrames; f++) {
+      frames.push({ kneeAngle: standingKnee, hipAngle: 170, confidence, timestampMs: curTime });
+      curTime += frameIntervalMs;
     }
-    return frames;
-  };
-
-  // 2. Partial Repetition: athlete descends only to 125° (quarter squat) and ascends back
-  const createPartialRepFrames = (startMs: number): MotionFrame[] => {
-    const frames: MotionFrame[] = [];
-    let curTime = startMs;
-    // Standing
+    // Descent
+    for (let f = 0; f < descentFrames; f++) {
+      const prog = (f + 1) / descentFrames;
+      const knee = standingKnee - prog * (standingKnee - bottomKnee);
+      const hip = 170 - prog * (170 - 75);
+      frames.push({ kneeAngle: knee, hipAngle: hip, confidence, timestampMs: curTime });
+      curTime += frameIntervalMs;
+    }
+    // Bottom hold
+    for (let f = 0; f < bottomFrames; f++) {
+      frames.push({ kneeAngle: bottomKnee, hipAngle: 75, confidence, timestampMs: curTime });
+      curTime += frameIntervalMs;
+    }
+    // Ascent
+    for (let f = 0; f < ascentFrames; f++) {
+      const prog = (f + 1) / ascentFrames;
+      const knee = bottomKnee + prog * (standingKnee - bottomKnee);
+      const hip = 75 + prog * (170 - 75);
+      frames.push({ kneeAngle: knee, hipAngle: hip, confidence, timestampMs: curTime });
+      curTime += frameIntervalMs;
+    }
+    // Cooldown hold
     for (let f = 0; f < 10; f++) {
-      frames.push({ kneeAngle: 172, hipAngle: 168, confidence: 0.95, timestampMs: curTime });
-      curTime += frameIntervalMs;
-    }
-    // Partial descent to 125° (target is ≤ 100°)
-    for (let f = 0; f < 15; f++) {
-      const knee = 172 - ((f + 1) / 15) * (172 - 125);
-      frames.push({ kneeAngle: knee, hipAngle: 130, confidence: 0.95, timestampMs: curTime });
-      curTime += frameIntervalMs;
-    }
-    // Aborted ascent back to standing
-    for (let f = 0; f < 15; f++) {
-      const knee = 125 + ((f + 1) / 15) * (172 - 125);
-      frames.push({ kneeAngle: knee, hipAngle: 168, confidence: 0.95, timestampMs: curTime });
+      frames.push({ kneeAngle: standingKnee, hipAngle: 170, confidence, timestampMs: curTime });
       curTime += frameIntervalMs;
     }
     return frames;
   };
 
-  // 3. Standing Still with Sensor Noise / Jitter
-  const createStandingJitterFrames = (startMs: number, count = 60): MotionFrame[] => {
-    const frames: MotionFrame[] = [];
-    let curTime = startMs;
-    for (let f = 0; f < count; f++) {
-      const jitter = Math.sin(f * 0.5) * 4; // ± 4° noise around 170°
-      frames.push({ kneeAngle: 170 + jitter, hipAngle: 165, confidence: 0.95, timestampMs: curTime });
-      curTime += frameIntervalMs;
+  const sequences: SyntheticSequence[] = [];
+
+  // Scenario 1: Correct synthetic full repetition (standard 2.0s tempo)
+  sequences.push({
+    id: 1,
+    name: '1. Correct Synthetic Full Repetition',
+    expectedReps: 1,
+    expectedPartials: 0,
+    groundTruthMinAngle: 90,
+    groundTruthDurationMs: Math.round((24 + 4 + 24) * frameIntervalMs),
+    frames: generateRepTrajectory(1000, 175, 90, 24, 4, 24, 10),
+  });
+
+  // Scenario 2: Partial squat (reversal at 125° before depth)
+  const partialFrames: MotionFrame[] = [];
+  let t = 1000;
+  for (let f = 0; f < 10; f++) {
+    partialFrames.push({ kneeAngle: 172, hipAngle: 168, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  for (let f = 0; f < 15; f++) {
+    const knee = 172 - ((f + 1) / 15) * (172 - 125);
+    partialFrames.push({ kneeAngle: knee, hipAngle: 130, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  for (let f = 0; f < 15; f++) {
+    const knee = 125 + ((f + 1) / 15) * (172 - 125);
+    partialFrames.push({ kneeAngle: knee, hipAngle: 168, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 2,
+    name: '2. Partial Shallow Squat (Quarter Squat)',
+    expectedReps: 0,
+    expectedPartials: 1,
+    groundTruthMinAngle: 125,
+    frames: partialFrames,
+  });
+
+  // Scenario 3: Slow repetition (extended 4.5s cadence)
+  sequences.push({
+    id: 3,
+    name: '3. Slow Controlled Repetition (4.5s tempo)',
+    expectedReps: 1,
+    expectedPartials: 0,
+    groundTruthMinAngle: 88,
+    frames: generateRepTrajectory(1000, 175, 88, 55, 12, 55, 15),
+  });
+
+  // Scenario 4: Fast repetition (800ms cadence, above 600ms gate)
+  sequences.push({
+    id: 4,
+    name: '4. Fast Athletic Repetition (800ms cadence)',
+    expectedReps: 1,
+    expectedPartials: 0,
+    groundTruthMinAngle: 92,
+    frames: generateRepTrajectory(1000, 175, 92, 12, 4, 12, 10),
+  });
+
+  // Scenario 5: Standing still (static upright stance)
+  const standingStillFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 90; f++) {
+    standingStillFrames.push({ kneeAngle: 175, hipAngle: 172, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 5,
+    name: '5. Standing Still (Upright Rest Stance)',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: standingStillFrames,
+  });
+
+  // Scenario 6: Shaking or jittering landmarks (micro-noise ±4°)
+  const jitterFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 90; f++) {
+    const noise = Math.sin(f * 0.7) * 4;
+    jitterFrames.push({ kneeAngle: 172 + noise, hipAngle: 168, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 6,
+    name: '6. Shaking / Jittering Landmarks (Noise Immunity)',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: jitterFrames,
+  });
+
+  // Scenario 7: Occluded knee (knee landmark drops confidence to 0.1 during descent)
+  const occludedKneeFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 10; f++) {
+    occludedKneeFrames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  for (let f = 0; f < 10; f++) {
+    occludedKneeFrames.push({ kneeAngle: 150 - f * 2, hipAngle: 140, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  // Knee occluded for 15 frames
+  for (let f = 0; f < 15; f++) {
+    const lm = generateLandmarksFromAngles(110, 100, 0.95);
+    lm[25].visibility = 0.1;
+    lm[26].visibility = 0.1;
+    occludedKneeFrames.push({
+      kneeAngle: 110,
+      hipAngle: 100,
+      confidence: 0.1,
+      timestampMs: t,
+      customLandmarks: lm,
+    });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 7,
+    name: '7. Occluded Knee During Descent',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: occludedKneeFrames,
+  });
+
+  // Scenario 8: Occluded ankle (ankle landmark drops confidence to 0.1)
+  const occludedAnkleFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 15; f++) {
+    const lm = generateLandmarksFromAngles(175, 170, 0.95);
+    lm[27].visibility = 0.1;
+    lm[28].visibility = 0.1;
+    occludedAnkleFrames.push({
+      kneeAngle: 175,
+      hipAngle: 170,
+      confidence: 0.2,
+      timestampMs: t,
+      customLandmarks: lm,
+    });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 8,
+    name: '8. Occluded Feet & Ankles (Camera Low Tilt)',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: occludedAnkleFrames,
+  });
+
+  // Scenario 9: Camera movement / sudden coordinate shift
+  const cameraShiftFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 20; f++) {
+    const lm = generateLandmarksFromAngles(175, 170, 0.95);
+    if (f >= 10) {
+      lm.forEach((p) => {
+        p.x += 0.2;
+        p.y -= 0.15;
+      });
     }
-    return frames;
-  };
+    cameraShiftFrames.push({
+      kneeAngle: 175,
+      hipAngle: 170,
+      confidence: 0.95,
+      timestampMs: t,
+      customLandmarks: lm,
+    });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 9,
+    name: '9. Camera Displacement & Framing Shift',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: cameraShiftFrames,
+  });
 
-  // 4. Ultra-Fast False Twitch (e.g. 200ms spike to 80° - should be rejected by min duration gate)
-  const createRapidTwitchFrames = (startMs: number): MotionFrame[] => {
-    const frames: MotionFrame[] = [];
-    let curTime = startMs;
-    // 3 frames standing
-    for (let f = 0; f < 3; f++) {
-      frames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: curTime });
-      curTime += frameIntervalMs;
+  // Scenario 10: Side-profile squat (unilateral dominant confidence)
+  const sideProfileFrames: MotionFrame[] = [];
+  t = 1000;
+  const rep10 = generateRepTrajectory(t, 175, 92, 24, 4, 24, 10);
+  rep10.forEach((fr) => {
+    fr.customLandmarks = generateLandmarksFromAngles(fr.kneeAngle, fr.hipAngle, 0.95, 'right');
+    sideProfileFrames.push(fr);
+  });
+  sequences.push({
+    id: 10,
+    name: '10. Side Profile Squat (Right Sagittal Dominance)',
+    expectedReps: 1,
+    expectedPartials: 0,
+    frames: sideProfileFrames,
+  });
+
+  // Scenario 11: Front-facing squat (bilateral equal confidence)
+  sequences.push({
+    id: 11,
+    name: '11. Front-Facing Squat (Bilateral Symmetric Tracking)',
+    expectedReps: 1,
+    expectedPartials: 0,
+    frames: generateRepTrajectory(1000, 175, 94, 24, 4, 24, 10),
+  });
+
+  // Scenario 12: Tracking loss mid-repetition with safe upright recovery
+  const trackingLossFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 15; f++) {
+    trackingLossFrames.push({ kneeAngle: 175 - f * 3, hipAngle: 160, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  // 50 frames tracking lost (> 1500ms abort threshold)
+  for (let f = 0; f < 50; f++) {
+    trackingLossFrames.push({ kneeAngle: 130, hipAngle: 120, confidence: 0.1, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  // Resumption at full standing
+  for (let f = 0; f < 20; f++) {
+    trackingLossFrames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 12,
+    name: '12. Tracking Loss Mid-Repetition & Upright Recovery',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: trackingLossFrames,
+  });
+
+  // Scenario 13: Pause and resume workflow
+  const pauseResumeFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 10; f++) {
+    pauseResumeFrames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  // Pause session
+  pauseResumeFrames.push({
+    kneeAngle: 175,
+    hipAngle: 170,
+    confidence: 0.95,
+    timestampMs: t,
+    pauseAction: 'pause',
+  });
+  t += 1000;
+  // Resume session
+  pauseResumeFrames.push({
+    kneeAngle: 175,
+    hipAngle: 170,
+    confidence: 0.95,
+    timestampMs: t,
+    pauseAction: 'resume',
+  });
+  t += 100;
+  // Execute clean rep
+  pauseResumeFrames.push(...generateRepTrajectory(t, 175, 90, 24, 4, 24, 10));
+  sequences.push({
+    id: 13,
+    name: '13. Workout Pause & Resume Workflow',
+    expectedReps: 1,
+    expectedPartials: 0,
+    frames: pauseResumeFrames,
+  });
+
+  // Scenario 14: Multiple consecutive repetitions (5 clean squats)
+  const multiRepFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let r = 0; r < 5; r++) {
+    const rep = generateRepTrajectory(t, 175, 90, 24, 4, 24, 8);
+    multiRepFrames.push(...rep);
+    t = multiRepFrames[multiRepFrames.length - 1].timestampMs + frameIntervalMs;
+  }
+  sequences.push({
+    id: 14,
+    name: '14. Five Consecutive Clean Squats',
+    expectedReps: 5,
+    expectedPartials: 0,
+    frames: multiRepFrames,
+  });
+
+  // Scenario 15: Invalid coordinates protection (NaN/null values)
+  const invalidCoordFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 20; f++) {
+    const lm = generateLandmarksFromAngles(175, 170, 0.95);
+    if (f % 4 === 0) {
+      lm[25].x = NaN;
+      lm[25].y = Infinity;
     }
-    // 2 frames spike down to 80°
-    frames.push({ kneeAngle: 80, hipAngle: 80, confidence: 0.95, timestampMs: curTime });
-    curTime += frameIntervalMs;
-    frames.push({ kneeAngle: 80, hipAngle: 80, confidence: 0.95, timestampMs: curTime });
-    curTime += frameIntervalMs;
-    // 3 frames back to 175°
-    for (let f = 0; f < 3; f++) {
-      frames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: curTime });
-      curTime += frameIntervalMs;
-    }
-    return frames;
-  };
+    invalidCoordFrames.push({
+      kneeAngle: 175,
+      hipAngle: 170,
+      confidence: 0.95,
+      timestampMs: t,
+      customLandmarks: lm,
+    });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 15,
+    name: '15. Invalid / Non-Finite Coordinate Protection',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: invalidCoordFrames,
+  });
 
-  // 5. Tracking Loss Sequence: good rep, then complete loss of confidence for 30 frames, then recovered rep
-  const createTrackingLossFrames = (startMs: number): MotionFrame[] => {
-    const frames: MotionFrame[] = [];
-    let curTime = startMs;
-    // Rep 1
-    frames.push(...createCleanRepFrames(curTime, 1));
-    curTime = frames[frames.length - 1].timestampMs + frameIntervalMs;
+  // Scenario 16: Sudden subject movement outside frame
+  const outsideFrameFrames: MotionFrame[] = [];
+  t = 1000;
+  for (let f = 0; f < 10; f++) {
+    outsideFrameFrames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.95, timestampMs: t });
+    t += frameIntervalMs;
+  }
+  for (let f = 0; f < 20; f++) {
+    const lm = generateLandmarksFromAngles(175, 170, 0.95);
+    lm.forEach((p) => {
+      p.x = 2.5; // Offscreen
+      p.y = 2.5;
+      p.visibility = 0.05;
+    });
+    outsideFrameFrames.push({
+      kneeAngle: 175,
+      hipAngle: 170,
+      confidence: 0.05,
+      timestampMs: t,
+      customLandmarks: lm,
+    });
+    t += frameIntervalMs;
+  }
+  sequences.push({
+    id: 16,
+    name: '16. Sudden Subject Movement Outside Frame',
+    expectedReps: 0,
+    expectedPartials: 0,
+    frames: outsideFrameFrames,
+  });
 
-    // 30 frames of tracking loss (confidence = 0.1)
-    for (let f = 0; f < 30; f++) {
-      frames.push({ kneeAngle: 175, hipAngle: 170, confidence: 0.1, timestampMs: curTime });
-      curTime += frameIntervalMs;
-    }
-
-    // Rep 2 after recovery
-    frames.push(...createCleanRepFrames(curTime, 1));
-    return frames;
-  };
-
-  return [
-    {
-      name: 'Sequence A: 3 Consecutive Clean Squats',
-      expectedReps: 3,
-      expectedPartials: 0,
-      frames: createCleanRepFrames(1000, 3),
-    },
-    {
-      name: 'Sequence B: Standing Still with Sensor Noise',
-      expectedReps: 0,
-      expectedPartials: 0,
-      frames: createStandingJitterFrames(1000, 90),
-    },
-    {
-      name: 'Sequence C: 2 Incomplete Partial Squats (Quarter Squats)',
-      expectedReps: 0,
-      expectedPartials: 2,
-      frames: [
-        ...createPartialRepFrames(1000),
-        ...createStandingJitterFrames(2500, 15),
-        ...createPartialRepFrames(3000),
-      ],
-    },
-    {
-      name: 'Sequence D: Rapid 200ms Sensor Twitch (False Positive Rejection)',
-      expectedReps: 0,
-      expectedPartials: 0,
-      frames: createRapidTwitchFrames(1000),
-    },
-    {
-      name: 'Sequence E: 2 Clean Squats Interrupted by Tracking Loss',
-      expectedReps: 2,
-      expectedPartials: 0,
-      frames: createTrackingLossFrames(1000),
-    },
-  ];
+  return sequences;
 }
 
 /**
@@ -283,19 +534,28 @@ export function runSquatValidationHarness(
   let missedReps = 0;
   let detectedPartials = 0;
   let expectedPartials = 0;
+  let maxAngleErrorDeg = 0;
+  let passedSequences = 0;
 
-  const sequenceBreakdown: ValidationResult['sequenceBreakdown'] = [];
+  const sequenceBreakdown: SequenceEvaluation[] = [];
 
   for (const seq of sequences) {
     const fsm = new SquatStateMachine();
     fsm.startSession(seq.frames[0]?.timestampMs ?? 0);
 
     for (const frame of seq.frames) {
-      const landmarks = generateLandmarksFromAngles(
-        frame.kneeAngle,
-        frame.hipAngle,
-        frame.confidence
-      );
+      if (frame.pauseAction === 'pause') {
+        fsm.pauseSession(frame.timestampMs);
+        continue;
+      } else if (frame.pauseAction === 'resume') {
+        fsm.startSession(frame.timestampMs);
+        continue;
+      }
+
+      const landmarks =
+        frame.customLandmarks ??
+        generateLandmarksFromAngles(frame.kneeAngle, frame.hipAngle, frame.confidence);
+
       fsm.processFrame(landmarks, frame.timestampMs);
     }
 
@@ -306,36 +566,67 @@ export function runSquatValidationHarness(
     expectedPartials += seq.expectedPartials;
     detectedPartials += metrics.partialRepCount;
 
+    const repCountError = Math.abs(metrics.repetitionCount - seq.expectedReps);
     if (metrics.repetitionCount > seq.expectedReps) {
       falsePositives += metrics.repetitionCount - seq.expectedReps;
     } else if (metrics.repetitionCount < seq.expectedReps) {
       missedReps += seq.expectedReps - metrics.repetitionCount;
     }
 
+    // Angle error evaluation if ground truth exists
+    let angleErrorDeg: number | null = null;
+    if (seq.groundTruthMinAngle !== undefined && metrics.repHistory.length > 0) {
+      const detectedMinAngle = metrics.repHistory[0].minKneeAngle;
+      angleErrorDeg = Math.round(Math.abs(detectedMinAngle - seq.groundTruthMinAngle) * 10) / 10;
+      if (angleErrorDeg > maxAngleErrorDeg) {
+        maxAngleErrorDeg = angleErrorDeg;
+      }
+    }
+
+    // Timing error evaluation if ground truth duration exists
+    let timingErrorMs: number | null = null;
+    if (seq.groundTruthDurationMs !== undefined && metrics.repHistory.length > 0) {
+      const detectedDuration = metrics.repHistory[0].durationMs;
+      timingErrorMs = Math.abs(detectedDuration - seq.groundTruthDurationMs);
+    }
+
     const seqPassed =
       metrics.repetitionCount === seq.expectedReps &&
       metrics.partialRepCount === seq.expectedPartials;
 
+    if (seqPassed) {
+      passedSequences++;
+    }
+
     sequenceBreakdown.push({
+      id: seq.id,
       name: seq.name,
-      expected: seq.expectedReps,
-      detected: metrics.repetitionCount,
-      partialsDetected: metrics.partialRepCount,
+      expectedReps: seq.expectedReps,
+      detectedReps: metrics.repetitionCount,
+      expectedPartials: seq.expectedPartials,
+      detectedPartials: metrics.partialRepCount,
+      repCountError,
+      angleErrorDeg,
+      timingErrorMs,
+      trackingCoveragePercent: metrics.trackingCoveragePercent ?? 100,
       passed: seqPassed,
     });
   }
 
-  const pass = falsePositives === 0 && missedReps === 0 && detectedPartials === expectedPartials;
+  const pass =
+    falsePositives === 0 && missedReps === 0 && detectedPartials === expectedPartials;
 
   return {
-    suiteName: 'KAARYAN Synthetic Squat Kinematics Suite v1.0',
+    suiteName: 'KAARYAN Synthetic Squat Kinematics 16-Scenario Suite v2.0',
     totalSequences: sequences.length,
+    passedSequences,
     totalExpectedReps,
     totalDetectedReps,
     falsePositives,
     missedReps,
-    detectedPartials,
     expectedPartials,
+    detectedPartials,
+    maxAngleErrorDeg,
     pass,
     sequenceBreakdown,
   };

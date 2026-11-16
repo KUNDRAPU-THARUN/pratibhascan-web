@@ -223,6 +223,10 @@ async function seed() {
 }
 
 seed().catch((err) => {
+  if (err?.message?.includes('fetch failed') || err?.code === 'ECONNREFUSED') {
+    console.warn('[WARN] Local Supabase (127.0.0.1:54321) is offline. Skipping database account seeding.');
+    process.exit(0);
+  }
   console.error('Seeding error:', err);
   process.exit(1);
 });

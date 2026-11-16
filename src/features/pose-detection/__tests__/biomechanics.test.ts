@@ -4,6 +4,7 @@ import {
   calculateTrunkInclination,
   evaluateSideVisibility,
   calculateSquatAngles,
+  calculateSquatDepthProxy,
 } from '../utils/biomechanics';
 import { NormalizedLandmark } from '../types/pose.types';
 
@@ -174,6 +175,35 @@ describe('Biomechanical Angle Calculations Suite', () => {
       expect(angles.side).toBe('bilateral');
       expect(angles.kneeAngle).toBe(180.0);
       expect(angles.hipAngle).toBe(180.0);
+      expect(angles.leftKneeAngle).toBe(180.0);
+      expect(angles.rightKneeAngle).toBe(180.0);
+      expect(angles.depthProxy).toBe('above_parallel');
+    });
+  });
+
+  describe('5. calculateSquatDepthProxy (Observable Planar Proxy)', () => {
+    it('returns above_parallel when hip is higher than knee in image coordinates', () => {
+      const hip = { x: 0.5, y: 0.4 };
+      const knee = { x: 0.5, y: 0.65 };
+      expect(calculateSquatDepthProxy(hip, knee)).toBe('above_parallel');
+    });
+
+    it('returns parallel when hip aligns horizontally with knee within 0.02 delta', () => {
+      const hip = { x: 0.5, y: 0.645 };
+      const knee = { x: 0.5, y: 0.65 };
+      expect(calculateSquatDepthProxy(hip, knee)).toBe('parallel');
+    });
+
+    it('returns below_parallel when hip sinks lower than knee in screen space', () => {
+      const hip = { x: 0.5, y: 0.69 };
+      const knee = { x: 0.5, y: 0.65 };
+      expect(calculateSquatDepthProxy(hip, knee)).toBe('below_parallel');
+    });
+
+    it('returns unknown for null, undefined, or non-finite inputs', () => {
+      expect(calculateSquatDepthProxy(null, { x: 0, y: 0 })).toBe('unknown');
+      expect(calculateSquatDepthProxy({ x: 0, y: 0 }, undefined)).toBe('unknown');
+      expect(calculateSquatDepthProxy({ x: 0, y: NaN }, { x: 0, y: 0 })).toBe('unknown');
     });
   });
 });

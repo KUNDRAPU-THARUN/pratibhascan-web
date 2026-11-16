@@ -146,4 +146,67 @@ describe('Squat Movement State Machine Suite', () => {
     expect(metrics.currentState).toBe('idle');
     expect(metrics.sessionDurationSec).toBe(0);
   });
+
+  it('records granular timing breakdown (descent, bottom, ascent) on completed repetition', () => {
+    let t = 1000;
+    fsm.processFrame(generateLandmarksFromAngles(175), t);
+    t += 300;
+
+    // Descent starts at t=1300
+    fsm.processFrame(generateLandmarksFromAngles(135), t);
+    t += 500;
+
+    // Bottom reached at t=1800
+    fsm.processFrame(generateLandmarksFromAngles(88), t);
+    t += 200;
+
+    // Ascent starts at t=2000
+    fsm.processFrame(generateLandmarksFromAngles(125), t);
+    t += 500;
+
+    // Completed at t=2500
+    const metrics = fsm.processFrame(generateLandmarksFromAngles(175), t);
+
+    expect(metrics.repetitionCount).toBe(1);
+    const rep = metrics.repHistory[0];
+    expect(rep.isCompleted).toBe(true);
+    expect(rep.descentDurationMs).toBeGreaterThan(0);
+    expect(rep.bottomDurationMs).toBeGreaterThan(0);
+    expect(rep.ascentDurationMs).toBeGreaterThan(0);
+    expect(rep.depthClassification).toBe('below_parallel');
+    expect(rep.qualityFeedback).toContain('Valid');
+  });
+
+  it('preserves rep metrics and measures pause durations accurately', () => {
+    const t = 1000;
+    fsm.processFrame(generateLandmarksFromAngles(175), t);
+
+    // Pause at t=2000
+    fsm.pauseSession(2000);
+    expect(fsm.getMetrics(2500).isSessionActive).toBe(false);
+
+    // Resume at t=4000 (2s paused)
+    fsm.startSession(4000);
+    expect(fsm.getMetrics(4000).isSessionActive).toBe(true);
+
+    // At t=5000, active elapsed time should be (5000 - 1000) - 2000 = 2 seconds
+    const m = fsm.getMetrics(5000);
+    expect(m.sessionDurationSec).toBe(2);
+  });
+
+  it('calculates valid tracking coverage percentage and tracks interruptions', () => {
+    let t = 1000;
+    // 8 valid frames
+    for (let i = 0; i < 8; i++) {
+      fsm.processFrame(generateLandmarksFromAngles(175), t);
+      t += 33;
+    }
+    // 2 invalid frames
+    fsm.processFrame(generateLandmarksFromAngles(175, 170, 0.1), t);
+    t += 33;
+    fsm.processFrame(generateLandmarksFromAngles(175, 170, 0.1), t);
+
+    const metrics = fsm.getMetrics(t);
+    expect(metrics.trackingCoveragePercent).toBe(80); // 8 / 10 = 80%
+  });
 });

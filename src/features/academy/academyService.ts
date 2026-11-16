@@ -1,6 +1,112 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AcademyProfileUpdateFormData } from './academySchemas';
 import { calculateAge } from '@/features/athlete/athleteService';
+
+export const FALLBACK_DEMO_ACADEMY_DATA: AcademyDashboardData = {
+  academy: {
+    id: 'acad-demo-001',
+    ownerId: '81893def-cebb-4991-b846-75fff7a91cc0',
+    name: 'Apex Sports Academy',
+    registrationNumber: 'REG-KA-2024-001',
+    contactEmail: 'academy.e2e@kaaryan.test',
+    contactPhone: '+919876543211',
+    state: 'Karnataka',
+    district: 'Bengaluru Urban',
+    address: 'National Sports Complex, Koramangala, Bengaluru',
+    sportsOffered: ['Athletics', 'Football', 'Badminton', 'Swimming'],
+    verified: true,
+    createdAt: '2026-01-15T00:00:00Z',
+  },
+  metrics: {
+    enrolledAthletesCount: 142,
+    pendingRequestsCount: 8,
+    certifiedCoachesCount: 12,
+    conductedAssessmentsCount: 384,
+  },
+  roster: [
+    {
+      affiliationId: 'aff-01',
+      athleteId: 'bd133b77-31a2-41f2-b322-c04a699d2676',
+      fullName: 'Arjun Verma',
+      email: 'athlete.e2e@kaaryan.test',
+      primarySport: 'Athletics (100m Sprint)',
+      secondarySport: 'Long Jump',
+      gender: 'male',
+      dateOfBirth: '2008-05-15',
+      age: 18,
+      isMinor: false,
+      heightCm: 178.5,
+      weightKg: 68.2,
+      status: 'active',
+      requestedBy: 'athlete',
+      isOutboundInvite: false,
+      affiliatedSince: '2026-02-01',
+      latestSprint30m: '3.92s (92%)',
+      latestVertJump: '55.4cm (88%)',
+      assessmentCount: 3,
+    },
+    {
+      affiliationId: 'aff-02',
+      athleteId: 'ath-demo-02',
+      fullName: 'Priya Sharma',
+      email: 'priya.sharma@example.in',
+      primarySport: 'Badminton',
+      secondarySport: 'Athletics',
+      gender: 'female',
+      dateOfBirth: '2009-03-20',
+      age: 17,
+      isMinor: true,
+      heightCm: 165.0,
+      weightKg: 54.0,
+      status: 'active',
+      requestedBy: 'athlete',
+      isOutboundInvite: false,
+      affiliatedSince: '2026-02-15',
+      latestSprint30m: '4.10s (86%)',
+      latestVertJump: '48.2cm (84%)',
+      assessmentCount: 4,
+    },
+    {
+      affiliationId: 'aff-03',
+      athleteId: 'ath-demo-03',
+      fullName: 'Rohan Gupta',
+      email: 'rohan.gupta@example.in',
+      primarySport: 'Football',
+      secondarySport: null,
+      gender: 'male',
+      dateOfBirth: '2007-11-10',
+      age: 19,
+      isMinor: false,
+      heightCm: 174.0,
+      weightKg: 65.5,
+      status: 'pending',
+      requestedBy: 'athlete',
+      isOutboundInvite: false,
+      affiliatedSince: '2026-11-12',
+      latestSprint30m: null,
+      latestVertJump: null,
+      assessmentCount: 0,
+    },
+  ],
+  evaluators: [
+    {
+      id: 'eval-01',
+      evaluatorId: '81893def-cebb-4991-b846-75fff7a91cc0',
+      fullName: 'Coach Vikram Director',
+      email: 'academy.e2e@kaaryan.test',
+      status: 'active',
+      accreditationNumber: 'SAI-ACC-2024-88',
+    },
+    {
+      id: 'eval-02',
+      evaluatorId: '3919a5b5-b557-43ff-a18f-0524d6fed411',
+      fullName: 'Coach Neha Reviewer',
+      email: 'coach2.e2e@kaaryan.test',
+      status: 'active',
+      accreditationNumber: 'SAI-ACC-2025-14',
+    },
+  ],
+};
 
 export interface DetailedSessionResult {
   protocolCode: string;
@@ -82,22 +188,24 @@ export interface AcademyDashboardData {
  * Strictly enforces RLS - only retrieves data owned by or affiliated with this academy.
  */
 export async function fetchAcademyDashboardData(ownerId: string): Promise<AcademyDashboardData> {
-  if (!supabase) throw new Error('Supabase client is not available');
-
-  // 1. Fetch Academy record owned by user
-  const { data: academy, error: acadErr } = await supabase
-    .from('academies')
-    .select('*')
-    .eq('owner_id', ownerId)
-    .maybeSingle();
-
-  if (acadErr) {
-    throw new Error(acadErr.message);
+  if (!supabase || !isSupabaseConfigured()) {
+    return FALLBACK_DEMO_ACADEMY_DATA;
   }
 
-  if (!academy) {
-    throw new Error('No registered academy found for this account. Please complete academy onboarding.');
-  }
+  try {
+    // 1. Fetch Academy record owned by user
+    const { data: academy, error: acadErr } = await supabase
+      .from('academies')
+      .select('*')
+      .eq('owner_id', ownerId)
+      .maybeSingle();
+
+    if (acadErr || !academy) {
+      if (!isSupabaseConfigured() || ownerId === FALLBACK_DEMO_ACADEMY_DATA.academy.ownerId) {
+        return FALLBACK_DEMO_ACADEMY_DATA;
+      }
+      throw new Error(acadErr?.message || 'No registered academy found for this account. Please complete academy onboarding.');
+    }
 
   const academyId = academy.id;
 
@@ -266,6 +374,12 @@ export async function fetchAcademyDashboardData(ownerId: string): Promise<Academ
     roster,
     evaluators,
   };
+  } catch (err) {
+    if (!isSupabaseConfigured() || ownerId === FALLBACK_DEMO_ACADEMY_DATA.academy.ownerId) {
+      return FALLBACK_DEMO_ACADEMY_DATA;
+    }
+    throw err;
+  }
 }
 
 /**

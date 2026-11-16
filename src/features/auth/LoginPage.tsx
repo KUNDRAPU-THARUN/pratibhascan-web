@@ -7,12 +7,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { useAuth } from './AuthContext';
 import { loginSchema } from './authSchemas';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { AlertCircle, Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn } = useAuth();
+  const { signIn, loginAsDemo } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +23,18 @@ export function LoginPage() {
 
   // Check if redirected from a protected route
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+
+  const handleDemoLogin = async (targetRole: 'athlete' | 'academy' | 'institution') => {
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await loginAsDemo(targetRole);
+      navigate(from || `/dashboard/${targetRole}`, { replace: true });
+    } catch {
+      setFormError('Failed to initiate demo session. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,17 +105,14 @@ export function LoginPage() {
           <CardContent className="space-y-4">
             {!isSupabaseConfigured() && (
               <div
-                className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5 text-amber-900 text-xs"
+                className="rounded-lg bg-teal-50 border border-teal-200 p-3 flex items-start gap-2.5 text-teal-950 text-xs"
                 role="alert"
               >
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <Sparkles className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-semibold text-amber-950">Backend Supabase Not Connected</p>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    To enable live authentication in production, add <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-amber-950 font-bold bg-amber-100 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> to your Vercel Project Settings. You can also explore the{' '}
-                    <Link to="/preview" className="font-bold underline text-amber-950 hover:text-primary-700">
-                      Interactive Demo Preview
-                    </Link>.
+                  <p className="font-semibold text-teal-950">Instant Demo Mode Active</p>
+                  <p className="text-[11px] text-teal-800 leading-relaxed">
+                    You can sign in instantly using the 1-click buttons below or enter your credentials to explore the platform. To connect a live remote database, add <code className="font-mono text-teal-950 font-bold bg-teal-100 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-teal-950 font-bold bg-teal-100 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> to your Vercel Project Settings.
                   </p>
                 </div>
               </div>
@@ -201,6 +210,52 @@ export function LoginPage() {
               Sign In
               <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
+
+            {/* Quick Demo Sign-In */}
+            <div className="w-full pt-2 border-t border-navy-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-navy-500 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-primary-600" />
+                  Instant Demo Sign-In
+                </span>
+                <span className="text-[10px] text-navy-400">1-Click Portal Access</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('athlete')}
+                  disabled={isSubmitting}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-navy-200 bg-navy-50/70 hover:bg-primary-50 hover:border-primary-300 transition-all text-center cursor-pointer group disabled:opacity-50"
+                  title="Sign in as Demo Athlete (Arjun Verma)"
+                >
+                  <span className="text-base mb-0.5">🏃</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-primary-700">Athlete</span>
+                  <span className="text-[10px] text-navy-500">Arjun Verma</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('academy')}
+                  disabled={isSubmitting}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-navy-200 bg-navy-50/70 hover:bg-primary-50 hover:border-primary-300 transition-all text-center cursor-pointer group disabled:opacity-50"
+                  title="Sign in as Demo Academy Director (Coach Vikram)"
+                >
+                  <span className="text-base mb-0.5">🏢</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-primary-700">Academy</span>
+                  <span className="text-[10px] text-navy-500">Coach Vikram</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDemoLogin('institution')}
+                  disabled={isSubmitting}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-navy-200 bg-navy-50/70 hover:bg-primary-50 hover:border-primary-300 transition-all text-center cursor-pointer group disabled:opacity-50"
+                  title="Sign in as Demo Institution Officer (Officer Rahul)"
+                >
+                  <span className="text-base mb-0.5">🏛️</span>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-primary-700">Institution</span>
+                  <span className="text-[10px] text-navy-500">Officer Rahul</span>
+                </button>
+              </div>
+            </div>
 
             <div className="text-center text-xs text-navy-600 pt-2 border-t border-navy-100 w-full">
               Don't have an account yet?{' '}

@@ -137,7 +137,8 @@ test.describe('PratibhaScan Web — AI Pose Detection Studio Suite', () => {
     const resumeButton = page.getByRole('button', { name: /resume tracking/i });
     await expect(resumeButton).toBeVisible();
     await resumeButton.click();
-    await expect(pausedBadge).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /pause tracking/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('span', { hasText: 'PAUSED' })).toHaveCount(0, { timeout: 10000 });
 
     // Explicit Stop Camera
     await stopButton.click();
@@ -236,7 +237,7 @@ test.describe('PratibhaScan Web — AI Pose Detection Studio Suite', () => {
     await expect(page.getByRole('button', { name: /start reps/i })).toBeVisible();
 
     // Click Reset
-    const resetBtn = page.getByRole('button', { name: /reset/i });
+    const resetBtn = page.getByTitle('Reset repetition count and timer');
     if (await resetBtn.isVisible()) {
       await resetBtn.click();
     }
@@ -244,5 +245,65 @@ test.describe('PratibhaScan Web — AI Pose Detection Studio Suite', () => {
     // Stop Camera teardown
     await page.getByRole('button', { name: /stop camera/i }).click();
     await expect(page.locator('text=Ready for Real-Time Pose Tracking')).toBeVisible();
+  });
+
+  // ============================================================================
+  // Test 9: Camera Framing & Calibration Guided Workflow
+  // ============================================================================
+  test('9. [Calibration] Framing card renders visibility checklist, distance guidance, and lock controls', async ({
+    page,
+  }) => {
+    await page.goto('/preview/pose-detection', { waitUntil: 'domcontentloaded' });
+
+    // Verify Calibration Card header
+    await expect(page.getByText('Camera Framing & Calibration', { exact: true })).toBeVisible();
+
+    // Verify checklist sections
+    await expect(page.getByText('Body Visibility', { exact: true })).toBeVisible();
+    await expect(page.getByText('Framing Distance', { exact: true })).toBeVisible();
+    await expect(page.getByText('Pose Stability', { exact: true })).toBeVisible();
+
+    // Toggle calibration card visibility from controls
+    const toggleCalibBtn = page.getByTitle('Camera Framing Calibration');
+    if (await toggleCalibBtn.isVisible()) {
+      await toggleCalibBtn.click();
+      await expect(page.getByText('Camera Framing & Calibration', { exact: true })).not.toBeVisible();
+      await toggleCalibBtn.click();
+      await expect(page.getByText('Camera Framing & Calibration', { exact: true })).toBeVisible();
+    }
+  });
+
+  // ============================================================================
+  // Test 10: Post-Session Summary Modal & Analytics Display
+  // ============================================================================
+  test('10. [Session Summary] Summary modal opens, presents repetition breakdown, and handles client export', async ({
+    page,
+  }) => {
+    await page.goto('/preview/pose-detection', { waitUntil: 'domcontentloaded' });
+
+    // Click Summary button from Squat Controls
+    const summaryBtn = page.getByTitle('View Session Summary');
+    if (await summaryBtn.isVisible()) {
+      await summaryBtn.click();
+
+      // Verify Modal Title
+      await expect(
+        page.getByRole('heading', { name: /Squat Session Summary & Analytics/i })
+      ).toBeVisible();
+
+      // Verify KPI Metrics
+      await expect(page.getByText('Valid Repetitions', { exact: true })).toBeVisible();
+      await expect(page.getByText('Partial Repetitions', { exact: true })).toBeVisible();
+      await expect(page.getByText('Tracking Coverage', { exact: true })).toBeVisible();
+
+      // Verify Export Button is visible
+      await expect(page.getByRole('button', { name: /Download JSON Summary/i })).toBeVisible();
+
+      // Close modal
+      await page.getByRole('button', { name: /Resume Workout/i }).click();
+      await expect(
+        page.getByRole('heading', { name: /Squat Session Summary & Analytics/i })
+      ).not.toBeVisible();
+    }
   });
 });

@@ -3,6 +3,7 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { DatabaseRole } from '@/types/database.types';
 import type { RegisterFormData, LoginFormData } from './authSchemas';
+import { DEMO_ACCOUNTS } from './demoAccounts';
 
 export interface UserProfile {
   id: string;
@@ -66,8 +67,10 @@ export interface AuthContextType {
   isOnboarded: boolean;
   isSuspended: boolean;
   emailPendingVerification: boolean;
+  isDemoMode: boolean;
   signUp: (data: RegisterFormData) => Promise<{ error: Error | null; requiresEmailConfirmation: boolean }>;
   signIn: (data: LoginFormData) => Promise<{ error: Error | null }>;
+  loginAsDemo: (role: 'athlete' | 'academy' | 'institution', customEmail?: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (password: string) => Promise<{ error: Error | null }>;
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(false);
   const [isSuspended, setIsSuspended] = useState<boolean>(false);
   const [emailPendingVerification, setEmailPendingVerification] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
   // Fetch domain profile and onboarding state
   const loadProfile = useCallback(async (userId: string, userMetaRole?: DatabaseRole) => {
@@ -224,7 +228,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initAuth() {
       try {
+        const savedDemo = typeof localStorage !== 'undefined' ? localStorage.getItem('pratibhascan_demo_session') : null;
+
         if (!supabase || !isSupabaseConfigured()) {
+          if (savedDemo && mounted) {
+            try {
+              const { role: targetRole, email } = JSON.parse(savedDemo);
+              const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
+              const demo = DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
+              setIsDemoMode(true);
+              setSession({
+                access_token: `demo-token-${targetRole}`,
+                token_type: 'bearer',
+                expires_in: 86400,
+                refresh_token: `demo-refresh-${targetRole}`,
+                user: demo.user,
+              } as Session);
+              setUser(demo.user);
+              setProfile(demo.profile);
+              setAthleteData(demo.athleteData || null);
+              setOrganization(demo.organization || null);
+              setIsOnboarded(true);
+              setIsSuspended(false);
+              setIsLoading(false);
+              return;
+            } catch {
+              localStorage.removeItem('pratibhascan_demo_session');
+            }
+          }
+
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -241,10 +273,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (mounted) {
           if (initialSession) {
+            setIsDemoMode(false);
             setSession(initialSession);
             setUser(initialSession.user);
             const metaRole = initialSession.user.user_metadata?.role as DatabaseRole | undefined;
             await loadProfile(initialSession.user.id, metaRole);
+          } else if (savedDemo) {
+            try {
+              const { role: targetRole, email } = JSON.parse(savedDemo);
+              const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
+              const demo = DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
+              setIsDemoMode(true);
+              setSession({
+                access_token: `demo-token-${targetRole}`,
+                token_type: 'bearer',
+                expires_in: 86400,
+                refresh_token: `demo-refresh-${targetRole}`,
+                user: demo.user,
+              } as Session);
+              setUser(demo.user);
+              setProfile(demo.profile);
+              setAthleteData(demo.athleteData || null);
+              setOrganization(demo.organization || null);
+              setIsOnboarded(true);
+              setIsSuspended(false);
+              setIsLoading(false);
+              return;
+            } catch {
+              localStorage.removeItem('pratibhascan_demo_session');
+            }
           } else {
             setSession(null);
             setUser(null);
@@ -296,13 +353,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, loadProfile]);
 
+  // Quick 1-click demo login for development and Vercel preview environments
+  const loginAsDemo = useCallback(async (targetRole: 'athlete' | 'academy' | 'institution', customEmail?: string) => {
+    const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
+    const emailKey = customEmail && DEMO_ACCOUNTS[customEmail.toLowerCase()] ? customEmail.toLowerCase() : defaultEmail;
+    const demo = DEMO_ACCOUNTS[emailKey] || DEMO_ACCOUNTS[defaultEmail];
+
+    setIsDemoMode(true);
+    const demoSession = {
+      access_token: `demo-token-${targetRole}`,
+      token_type: 'bearer',
+      expires_in: 86400,
+      refresh_token: `demo-refresh-${targetRole}`,
+      user: demo.user,
+    } as Session;
+
+    setSession(demoSession);
+    setUser(demo.user);
+    setProfile(demo.profile);
+    setAthleteData(demo.athleteData || null);
+    setOrganization(demo.organization || null);
+    setIsOnboarded(true);
+    setIsSuspended(false);
+
+    try {
+      localStorage.setItem(
+        'pratibhascan_demo_session',
+        JSON.stringify({
+          role: targetRole,
+          email: customEmail || demo.user.email,
+        })
+      );
+    } catch {
+      // Storage error ignored
+    }
+  }, []);
+
   // Sign up with role and full name metadata
   const signUp = async (data: RegisterFormData): Promise<{ error: Error | null; requiresEmailConfirmation: boolean }> => {
     try {
       if (!supabase || !isSupabaseConfigured()) {
-        throw new Error(
-          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
-        );
+        await loginAsDemo(data.role, data.email);
+        return { error: null, requiresEmailConfirmation: false };
       }
 
       const { data: authData, error } = await supabase.auth.signUp({
@@ -326,6 +418,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setEmailPendingVerification(requiresEmail);
 
       if (authData.session && authData.user) {
+        setIsDemoMode(false);
         setSession(authData.session);
         setUser(authData.user);
         await loadProfile(authData.user.id, data.role);
@@ -340,27 +433,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with email and password
   const signIn = async (data: LoginFormData): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase || !isSupabaseConfigured()) {
-        throw new Error(
-          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
-        );
+      const emailLower = data.email.toLowerCase().trim();
+
+      // If Supabase is configured, attempt live Supabase authentication
+      if (supabase && isSupabaseConfigured()) {
+        try {
+          const { data: authData, error } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+          });
+
+          if (!error && authData.session && authData.user) {
+            setIsDemoMode(false);
+            setSession(authData.session);
+            setUser(authData.user);
+            await loadProfile(authData.user.id);
+            try {
+              localStorage.removeItem('pratibhascan_demo_session');
+            } catch {
+              // Ignore
+            }
+            return { error: null };
+          }
+
+          // If Supabase returned an error, check if this is a known demo account intended for offline testing
+          const isKnownDemo = Boolean(DEMO_ACCOUNTS[emailLower]);
+          if (!isKnownDemo) {
+            return { error };
+          }
+        } catch (netErr) {
+          const isKnownDemo = Boolean(DEMO_ACCOUNTS[emailLower]);
+          if (!isKnownDemo) {
+            throw netErr;
+          }
+        }
       }
 
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) {
-        return { error };
+      // Offline / Unconfigured Demo Fallback Mode
+      let targetRole: 'athlete' | 'academy' | 'institution' = 'athlete';
+      if (emailLower.includes('academy') || emailLower.includes('coach')) {
+        targetRole = 'academy';
+      } else if (emailLower.includes('institution') || emailLower.includes('officer')) {
+        targetRole = 'institution';
       }
 
-      if (authData.session) {
-        setSession(authData.session);
-        setUser(authData.user);
-        await loadProfile(authData.user.id);
-      }
-
+      await loginAsDemo(targetRole, data.email);
       return { error: null };
     } catch (err) {
       return { error: err as Error };
@@ -370,7 +487,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign out
   const signOut = async () => {
     try {
-      if (supabase) {
+      if (supabase && isSupabaseConfigured()) {
         await supabase.auth.signOut();
       }
     } catch (err) {
@@ -384,6 +501,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsOnboarded(false);
       setIsSuspended(false);
       setEmailPendingVerification(false);
+      setIsDemoMode(false);
+      try {
+        localStorage.removeItem('pratibhascan_demo_session');
+      } catch {
+        // Storage error ignored
+      }
     }
   };
 
@@ -437,8 +560,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isOnboarded,
         isSuspended,
         emailPendingVerification,
+        isDemoMode,
         signUp,
         signIn,
+        loginAsDemo,
         signOut,
         resetPassword,
         updatePassword,

@@ -5,7 +5,7 @@
  *
  * Real-time biometric squat counter interface presenting live repetition counts,
  * movement state machine phase, joint angle indicators, session stopwatch,
- * workout controls, and camera framing guidance.
+ * workout controls, camera framing calibration, and post-session summary triggers.
  */
 
 import React from 'react';
@@ -22,8 +22,12 @@ import {
   ArrowUp,
   Eye,
   Info,
+  Maximize2,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface SquatCounterPanelProps {
   metrics: SquatSessionMetrics;
@@ -31,6 +35,9 @@ interface SquatCounterPanelProps {
   onPause: () => void;
   onReset: () => void;
   isCameraActive: boolean;
+  onOpenSummary?: () => void;
+  onToggleCalibration?: () => void;
+  isCalibrated?: boolean;
 }
 
 export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
@@ -39,6 +46,9 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
   onPause,
   onReset,
   isCameraActive,
+  onOpenSummary,
+  onToggleCalibration,
+  isCalibrated = false,
 }) => {
   const {
     repetitionCount,
@@ -47,11 +57,19 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
     kneeAngle,
     hipAngle,
     trunkAngle,
+    leftKneeAngle,
+    rightKneeAngle,
+    leftHipAngle,
+    rightHipAngle,
+    depthProxy = 'unknown',
+    trackingCoveragePercent = 100,
+    currentFeedbackMessage,
     primarySide,
     trackingQuality,
     sessionDurationSec,
     isSessionActive,
     lastRepDurationMs,
+    repHistory = [],
   } = metrics;
 
   // Format MM:SS timer
@@ -115,6 +133,19 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
 
   const stateBadge = getStateBadge(currentState);
 
+  const getDepthBadge = () => {
+    switch (depthProxy) {
+      case 'below_parallel':
+        return <span className="text-emerald-700 font-bold">Below Parallel (Deep)</span>;
+      case 'parallel':
+        return <span className="text-emerald-600 font-bold">Thighs Parallel</span>;
+      case 'above_parallel':
+        return <span className="text-navy-600 font-semibold">Above Parallel</span>;
+      default:
+        return <span className="text-navy-400">Detecting...</span>;
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Top Bar: Rep Count & Timer Hero Cards */}
@@ -148,7 +179,10 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           {/* Depth progress bar towards 100° */}
           <div className="space-y-1 pt-1">
             <div className="flex items-center justify-between text-[11px] text-navy-500">
-              <span>Squat Depth Progress</span>
+              <span className="flex items-center gap-1">
+                <span>Squat Depth Progress</span>
+                <span className="text-[10px] text-navy-400">• Proxy: {getDepthBadge()}</span>
+              </span>
               <span className="font-semibold text-navy-900">{depthPercentage}%</span>
             </div>
             <div className="w-full h-2.5 bg-navy-100 rounded-full overflow-hidden">
@@ -166,7 +200,7 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           </div>
         </div>
 
-        {/* 2. Session Timer & Last Rep Duration */}
+        {/* 2. Session Timer & Coverage */}
         <div className="p-5 rounded-2xl bg-white border border-navy-200/90 shadow-xs flex flex-col justify-between space-y-2">
           <div className="flex items-center justify-between text-navy-600">
             <span className="text-xs font-bold uppercase tracking-wider">Workout Timer</span>
@@ -175,19 +209,35 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           <div className="text-3xl font-extrabold text-navy-950 font-mono">
             {formattedTime}
           </div>
-          <div className="text-xs text-navy-500">
+          <div className="text-xs text-navy-500 flex items-center justify-between">
             {lastRepDurationMs ? (
-              <span>Last Rep: <strong>{(lastRepDurationMs / 1000).toFixed(1)}s</strong></span>
+              <span>Last: <strong>{(lastRepDurationMs / 1000).toFixed(1)}s</strong></span>
             ) : (
               <span>Standard Tempo: 2.0s - 3.5s</span>
             )}
+            <Badge variant="outline" className="text-[10px] font-mono">
+              {trackingCoveragePercent}% cov
+            </Badge>
           </div>
         </div>
 
-        {/* 3. Workout Controls (Start / Pause / Reset) */}
+        {/* 3. Workout Controls (Start / Pause / Reset / Summary) */}
         <div className="p-5 rounded-2xl bg-white border border-navy-200/90 shadow-xs flex flex-col justify-between space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-navy-600">
-            Squat Controls
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-navy-600">
+              Squat Controls
+            </span>
+            {onToggleCalibration && (
+              <button
+                type="button"
+                onClick={onToggleCalibration}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700 hover:text-primary-800 cursor-pointer"
+                title="Camera Framing Calibration"
+              >
+                <Maximize2 className="h-3 w-3" />
+                {isCalibrated ? 'Calibrated' : 'Calibrate'}
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -223,6 +273,18 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+
+            {onOpenSummary && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenSummary}
+                className="text-primary-700 hover:bg-primary-50 border-primary-200"
+                title="View Session Summary"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <div className="text-[10px] text-navy-500">
@@ -230,6 +292,10 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
               <span className="text-amber-600 font-medium">Activate camera to start session</span>
             ) : isSessionActive ? (
               <span className="text-emerald-600 font-medium">Counter active — begin squatting</span>
+            ) : repHistory.length > 0 ? (
+              <span className="text-primary-600 font-medium cursor-pointer" onClick={onOpenSummary}>
+                Session paused • Click icon for summary
+              </span>
             ) : (
               <span>Click Start to track reps</span>
             )}
@@ -247,17 +313,24 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           <div className="text-2xl font-black text-navy-950 font-mono">
             {kneeAngle !== null ? `${kneeAngle}°` : '--°'}
           </div>
-          <div className="text-[10px] text-navy-500">
-            {kneeAngle !== null ? (
-              kneeAngle <= 100 ? (
-                <span className="text-emerald-600 font-bold">Full Depth Attained</span>
-              ) : kneeAngle <= 140 ? (
-                <span className="text-amber-600 font-semibold">Descent in Progress</span>
+          <div className="text-[10px] text-navy-500 flex justify-between">
+            <span>
+              {kneeAngle !== null ? (
+                kneeAngle <= 100 ? (
+                  <span className="text-emerald-600 font-bold">Full Depth Attained</span>
+                ) : kneeAngle <= 140 ? (
+                  <span className="text-amber-600 font-semibold">Descent in Progress</span>
+                ) : (
+                  <span className="text-navy-600">Standing (Target ≤ 100°)</span>
+                )
               ) : (
-                <span className="text-navy-600">Standing (Target ≤ 100°)</span>
-              )
-            ) : (
-              'Stand in frame'
+                'Stand in frame'
+              )}
+            </span>
+            {(leftKneeAngle !== null || rightKneeAngle !== null) && (
+              <span className="font-mono text-navy-400">
+                L:{leftKneeAngle ?? '--'} R:{rightKneeAngle ?? '--'}
+              </span>
             )}
           </div>
         </div>
@@ -270,8 +343,13 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           <div className="text-2xl font-black text-navy-950 font-mono">
             {hipAngle !== null ? `${hipAngle}°` : '--°'}
           </div>
-          <div className="text-[10px] text-navy-500">
-            Flexion: {hipAngle !== null ? `${Math.round(180 - hipAngle)}°` : '--'}
+          <div className="text-[10px] text-navy-500 flex justify-between">
+            <span>Flexion: {hipAngle !== null ? `${Math.round(180 - hipAngle)}°` : '--'}</span>
+            {(leftHipAngle !== null || rightHipAngle !== null) && (
+              <span className="font-mono text-navy-400">
+                L:{leftHipAngle ?? '--'} R:{rightHipAngle ?? '--'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -306,6 +384,27 @@ export const SquatCounterPanel: React.FC<SquatCounterPanelProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Live Movement Quality Callout Banner */}
+      {currentFeedbackMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/90 text-emerald-950 text-xs flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-700 shrink-0" />
+            <span className="font-semibold text-emerald-900">{currentFeedbackMessage}</span>
+          </div>
+          {repHistory.length > 0 && onOpenSummary && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onOpenSummary}
+              className="text-[11px] h-7 bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100/50"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Summary ({repetitionCount} valid)
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Positioning Guidance Card */}
       <div className="p-4 rounded-xl bg-primary-50/70 border border-primary-200/80 text-primary-950 flex items-start gap-3 shadow-xs">

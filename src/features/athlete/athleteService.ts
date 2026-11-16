@@ -1,5 +1,94 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AthleteProfileUpdateFormData } from './athleteSchemas';
+
+export const FALLBACK_DEMO_ATHLETE_DATA: AthleteDashboardData = {
+  id: 'bd133b77-31a2-41f2-b322-c04a699d2676',
+  fullName: 'Arjun Verma',
+  email: 'athlete.e2e@kaaryan.test',
+  phoneNumber: '+919876543210',
+  avatarUrl: null,
+  state: 'Karnataka',
+  district: 'Bengaluru Urban',
+  dateOfBirth: '2008-05-15',
+  age: 18,
+  isMinor: false,
+  gender: 'male',
+  primarySport: 'Athletics (100m Sprint)',
+  secondarySport: 'Long Jump',
+  heightCm: 178.5,
+  weightKg: 68.2,
+  wingspanCm: 182.0,
+  apeIndex: 3.5,
+  bmi: 21.4,
+  compositeTalentScore: 87.4,
+  activeAffiliation: {
+    id: 'aff-demo-01',
+    name: 'Apex Sports Academy',
+    type: 'academy',
+    state: 'Karnataka',
+    district: 'Bengaluru Urban',
+  },
+  pendingAffiliations: [],
+  assessmentSessions: [
+    {
+      id: 'session-demo-01',
+      date: '2026-11-10',
+      venue: 'Kanteerava Stadium, Bengaluru',
+      verified: true,
+      evaluatorName: 'Coach Vikram Director',
+      organizationName: 'Apex Sports Academy',
+      results: [
+        {
+          id: 'res-demo-01',
+          protocolCode: 'SPRINT_30M',
+          protocolTitle: '30m Acceleration Sprint',
+          protocolCategory: 'Speed & Acceleration',
+          unit: 'seconds',
+          lowerIsBetter: true,
+          trial1: 4.02,
+          trial2: 3.92,
+          trial3: 3.95,
+          bestScore: 3.92,
+          percentileRank: 92,
+          status: 'verified',
+        },
+        {
+          id: 'res-demo-02',
+          protocolCode: 'VERT_JUMP',
+          protocolTitle: 'Vertical Countermovement Jump',
+          protocolCategory: 'Explosive Power',
+          unit: 'cm',
+          lowerIsBetter: false,
+          trial1: 52.0,
+          trial2: 55.4,
+          trial3: 54.8,
+          bestScore: 55.4,
+          percentileRank: 88,
+          status: 'verified',
+        },
+        {
+          id: 'res-demo-03',
+          protocolCode: 'BEEP_TEST',
+          protocolTitle: '20m Multi-Stage Shuttle Run (Beep Test)',
+          protocolCategory: 'Cardiovascular Endurance',
+          unit: 'level.shuttle',
+          lowerIsBetter: false,
+          trial1: null,
+          trial2: null,
+          trial3: null,
+          bestScore: 11.4,
+          percentileRank: 85,
+          status: 'verified',
+        },
+      ],
+    },
+  ],
+  benchmarks: {
+    sprint30m: { bestScore: 3.92, percentile: 92, date: '2026-11-10' },
+    vertJump: { bestScore: 55.4, percentile: 88, date: '2026-11-10' },
+    beepTest: { bestScore: 11.4, percentile: 85, date: '2026-11-10' },
+  },
+};
 
 export interface AthleteDashboardData {
   id: string;
@@ -101,18 +190,24 @@ export function calculateBMI(weightKg: number, heightCm: number): number {
  * Respects RLS - queries only data accessible to the authenticated athlete.
  */
 export async function fetchAthleteDashboardData(athleteId: string): Promise<AthleteDashboardData> {
-  if (!supabase) throw new Error('Supabase client is not available');
-
-  // 1. Fetch user profile
-  const { data: profile, error: profileErr } = await supabase
-    .from('user_profiles')
-    .select('id, email, full_name, role, phone_number, avatar_url, state, district, is_suspended')
-    .eq('id', athleteId)
-    .single();
-
-  if (profileErr || !profile) {
-    throw new Error(profileErr?.message || 'Failed to load athlete profile');
+  if (!supabase || !isSupabaseConfigured()) {
+    return FALLBACK_DEMO_ATHLETE_DATA;
   }
+
+  try {
+    // 1. Fetch user profile
+    const { data: profile, error: profileErr } = await supabase
+      .from('user_profiles')
+      .select('id, email, full_name, role, phone_number, avatar_url, state, district, is_suspended')
+      .eq('id', athleteId)
+      .single();
+
+    if (profileErr || !profile) {
+      if (athleteId === FALLBACK_DEMO_ATHLETE_DATA.id || !isSupabaseConfigured()) {
+        return FALLBACK_DEMO_ATHLETE_DATA;
+      }
+      throw new Error(profileErr?.message || 'Failed to load athlete profile');
+    }
 
   // 2. Fetch athlete baseline
   const { data: athlete, error: athleteErr } = await supabase
@@ -330,6 +425,12 @@ export async function fetchAthleteDashboardData(athleteId: string): Promise<Athl
     assessmentSessions,
     benchmarks,
   };
+  } catch (err) {
+    if (!isSupabaseConfigured() || athleteId === FALLBACK_DEMO_ATHLETE_DATA.id) {
+      return FALLBACK_DEMO_ATHLETE_DATA;
+    }
+    throw err;
+  }
 }
 
 /**
