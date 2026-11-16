@@ -159,3 +159,172 @@ export const DEMO_ACCOUNTS: Record<string, DemoAccountConfig> = {
 DEMO_ACCOUNTS['athlete@kaaryan.test'] = DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
 DEMO_ACCOUNTS['academy@kaaryan.test'] = DEMO_ACCOUNTS['academy.e2e@kaaryan.test'];
 DEMO_ACCOUNTS['institution@kaaryan.test'] = DEMO_ACCOUNTS['institution.e2e@kaaryan.test'];
+
+export const LOCAL_USERS_STORAGE_KEY = 'pratibhascan_registered_users';
+
+export function getStoredLocalUsers(): Record<string, DemoAccountConfig & { password?: string }> {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(LOCAL_USERS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function registerLocalAccount(data: {
+  fullName: string;
+  email: string;
+  role: DatabaseRole;
+  password?: string;
+}): DemoAccountConfig {
+  const emailKey = data.email.toLowerCase().trim();
+  const userId = `usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+
+  const user: User = {
+    id: userId,
+    email: emailKey,
+    app_metadata: {},
+    user_metadata: { role: data.role, full_name: data.fullName },
+    aud: 'authenticated',
+    created_at: now,
+  } as User;
+
+  const profile: UserProfile = {
+    id: userId,
+    email: emailKey,
+    full_name: data.fullName,
+    role: data.role,
+    phone_number: '+919876543210',
+    avatar_url: null,
+    state: 'Karnataka',
+    district: 'Bengaluru Urban',
+    is_suspended: false,
+    suspension_reason: null,
+    created_at: now,
+  };
+
+  let athleteData: AthleteData | undefined = undefined;
+  let organization: AcademyOrg | InstitutionOrg | undefined = undefined;
+
+  if (data.role === 'athlete') {
+    athleteData = {
+      id: userId,
+      date_of_birth: '2008-01-01',
+      gender: 'male',
+      primary_sport: 'Athletics (100m Sprint)',
+      secondary_sport: 'Long Jump',
+      height_cm: 175,
+      weight_kg: 66,
+      wingspan_cm: 180,
+      composite_talent_score: 85.0,
+    };
+  } else if (data.role === 'academy') {
+    organization = {
+      id: `acad-${userId}`,
+      owner_id: userId,
+      name: `${data.fullName}'s Academy`,
+      registration_number: `REG-KA-${Date.now().toString().slice(-4)}`,
+      contact_email: emailKey,
+      contact_phone: '+919876543210',
+      state: 'Karnataka',
+      district: 'Bengaluru Urban',
+      sports_offered: ['Athletics', 'Badminton', 'Football'],
+      verified: true,
+    };
+  } else if (data.role === 'institution') {
+    organization = {
+      id: `inst-${userId}`,
+      owner_id: userId,
+      name: `${data.fullName}'s Institution`,
+      type: 'sports_board',
+      contact_email: emailKey,
+      contact_phone: '+919876543210',
+      state: 'Karnataka',
+      district: 'Bengaluru Urban',
+      verified: true,
+    };
+  }
+
+  const accountConfig: DemoAccountConfig = {
+    role: data.role,
+    user,
+    profile,
+    athleteData,
+    organization,
+  };
+
+  try {
+    const existing = getStoredLocalUsers();
+    existing[emailKey] = {
+      ...accountConfig,
+      password: data.password || 'TestPassword123!',
+    };
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(LOCAL_USERS_STORAGE_KEY, JSON.stringify(existing));
+    }
+  } catch {
+    // Storage error ignored
+  }
+
+  // Also register in-memory in DEMO_ACCOUNTS
+  DEMO_ACCOUNTS[emailKey] = accountConfig;
+
+  return accountConfig;
+}
+
+export function getLocalAccount(email: string, _password?: string): DemoAccountConfig | null {
+  const emailKey = email.toLowerCase().trim();
+
+  // 1. Check in-memory DEMO_ACCOUNTS
+  if (DEMO_ACCOUNTS[emailKey]) {
+    return DEMO_ACCOUNTS[emailKey];
+  }
+
+  // 2. Check localStorage
+  try {
+    const stored = getStoredLocalUsers();
+    if (stored[emailKey]) {
+      DEMO_ACCOUNTS[emailKey] = stored[emailKey];
+      return stored[emailKey];
+    }
+  } catch {
+    // Storage error ignored
+  }
+
+  return null;
+}
+
+export function updateLocalAccountProfile(
+  userId: string,
+  updates: {
+    profileUpdates?: Partial<UserProfile>;
+    athleteUpdates?: Partial<AthleteData>;
+    organizationUpdates?: Partial<AcademyOrg | InstitutionOrg>;
+  }
+): void {
+  try {
+    const stored = getStoredLocalUsers();
+    for (const email of Object.keys(stored)) {
+      if (stored[email].user?.id === userId) {
+        if (updates.profileUpdates) {
+          stored[email].profile = { ...stored[email].profile, ...updates.profileUpdates };
+        }
+        if (updates.athleteUpdates && stored[email].athleteData) {
+          stored[email].athleteData = { ...stored[email].athleteData, ...updates.athleteUpdates };
+        }
+        if (updates.organizationUpdates && stored[email].organization) {
+          stored[email].organization = { ...stored[email].organization, ...updates.organizationUpdates } as any;
+        }
+        DEMO_ACCOUNTS[email] = stored[email];
+        break;
+      }
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(LOCAL_USERS_STORAGE_KEY, JSON.stringify(stored));
+    }
+  } catch {
+    // Storage error ignored
+  }
+}

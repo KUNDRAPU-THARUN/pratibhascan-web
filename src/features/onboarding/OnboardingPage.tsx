@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/features/auth/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { updateLocalAccountProfile } from '@/features/auth/demoAccounts';
 import {
   athleteOnboardingSchema,
   academyOnboardingSchema,
@@ -144,10 +145,32 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!user || !supabase) return;
+    if (!user) return;
     setIsSubmitting(true);
 
     try {
+      if (!supabase || !isSupabaseConfigured()) {
+        updateLocalAccountProfile(user.id, {
+          profileUpdates: {
+            state,
+            district,
+            phone_number: phoneNumber || null,
+          },
+          athleteUpdates: {
+            date_of_birth: dateOfBirth,
+            gender,
+            primary_sport: primarySport,
+            secondary_sport: secondarySport || null,
+            height_cm: parsedHeight,
+            weight_kg: parsedWeight,
+            wingspan_cm: parsedWingspan,
+          },
+        });
+        await refreshProfile();
+        navigate('/dashboard/athlete', { replace: true });
+        return;
+      }
+
       // 1. Update user_profiles
       const { error: profileError } = await supabase
         .from('user_profiles')
@@ -217,10 +240,33 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!user || !supabase) return;
+    if (!user) return;
     setIsSubmitting(true);
 
     try {
+      if (!supabase || !isSupabaseConfigured()) {
+        updateLocalAccountProfile(user.id, {
+          profileUpdates: {
+            state,
+            district,
+            phone_number: contactPhone || null,
+          },
+          organizationUpdates: {
+            name: academyName,
+            registration_number: regNumber || null,
+            contact_email: contactEmail,
+            contact_phone: contactPhone || null,
+            state,
+            district,
+            sports_offered: selectedSports,
+            verified: true,
+          },
+        });
+        await refreshProfile();
+        navigate('/dashboard/academy', { replace: true });
+        return;
+      }
+
       // 1. Insert new academy owned by current user
       const { error: academyError } = await supabase.from('academies').insert({
         owner_id: user.id,
@@ -283,10 +329,32 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!user || !supabase) return;
+    if (!user) return;
     setIsSubmitting(true);
 
     try {
+      if (!supabase || !isSupabaseConfigured()) {
+        updateLocalAccountProfile(user.id, {
+          profileUpdates: {
+            state,
+            district,
+            phone_number: contactPhone || null,
+          },
+          organizationUpdates: {
+            name: institutionName,
+            type: instType,
+            contact_email: contactEmail,
+            contact_phone: contactPhone || null,
+            state,
+            district,
+            verified: true,
+          },
+        });
+        await refreshProfile();
+        navigate('/dashboard/institution', { replace: true });
+        return;
+      }
+
       // 1. Insert new institution owned by current user
       const { error: instError } = await supabase.from('institutions').insert({
         owner_id: user.id,

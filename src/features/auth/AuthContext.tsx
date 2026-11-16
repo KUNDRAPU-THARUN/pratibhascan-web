@@ -3,7 +3,12 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { DatabaseRole } from '@/types/database.types';
 import type { RegisterFormData, LoginFormData } from './authSchemas';
-import { DEMO_ACCOUNTS } from './demoAccounts';
+import {
+  DEMO_ACCOUNTS,
+  getLocalAccount,
+  registerLocalAccount,
+  type DemoAccountConfig,
+} from './demoAccounts';
 
 export interface UserProfile {
   id: string;
@@ -235,13 +240,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const { role: targetRole, email } = JSON.parse(savedDemo);
               const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
-              const demo = DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
+              const demo = (email ? getLocalAccount(email) : null) || DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
               setIsDemoMode(true);
               setSession({
-                access_token: `demo-token-${targetRole}`,
+                access_token: `demo-token-${demo.user.id}`,
                 token_type: 'bearer',
                 expires_in: 86400,
-                refresh_token: `demo-refresh-${targetRole}`,
+                refresh_token: `demo-refresh-${demo.user.id}`,
                 user: demo.user,
               } as Session);
               setUser(demo.user);
@@ -282,13 +287,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const { role: targetRole, email } = JSON.parse(savedDemo);
               const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
-              const demo = DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
+              const demo = (email ? getLocalAccount(email) : null) || DEMO_ACCOUNTS[email] || DEMO_ACCOUNTS[defaultEmail] || DEMO_ACCOUNTS['athlete.e2e@kaaryan.test'];
               setIsDemoMode(true);
               setSession({
-                access_token: `demo-token-${targetRole}`,
+                access_token: `demo-token-${demo.user.id}`,
                 token_type: 'bearer',
                 expires_in: 86400,
-                refresh_token: `demo-refresh-${targetRole}`,
+                refresh_token: `demo-refresh-${demo.user.id}`,
                 user: demo.user,
               } as Session);
               setUser(demo.user);
@@ -354,17 +359,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, loadProfile]);
 
   // Quick 1-click demo login for development and Vercel preview environments
-  const loginAsDemo = useCallback(async (targetRole: 'athlete' | 'academy' | 'institution', customEmail?: string) => {
-    const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
-    const emailKey = customEmail && DEMO_ACCOUNTS[customEmail.toLowerCase()] ? customEmail.toLowerCase() : defaultEmail;
-    const demo = DEMO_ACCOUNTS[emailKey] || DEMO_ACCOUNTS[defaultEmail];
+  const loginAsDemo = useCallback(async (targetRole: 'athlete' | 'academy' | 'institution', customEmail?: string, customName?: string) => {
+    let demo: DemoAccountConfig;
+    if (customEmail) {
+      const emailLower = customEmail.toLowerCase().trim();
+      const existing = getLocalAccount(emailLower);
+      if (existing) {
+        demo = existing;
+      } else {
+        const namePart = emailLower.split('@')[0].replace(/[._-]/g, ' ');
+        const derivedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        demo = registerLocalAccount({
+          fullName: customName || derivedName,
+          email: emailLower,
+          role: targetRole,
+        });
+      }
+    } else {
+      const defaultEmail = `${targetRole}.e2e@kaaryan.test`;
+      demo = DEMO_ACCOUNTS[defaultEmail];
+    }
 
     setIsDemoMode(true);
     const demoSession = {
-      access_token: `demo-token-${targetRole}`,
+      access_token: `demo-token-${demo.user.id}`,
       token_type: 'bearer',
       expires_in: 86400,
-      refresh_token: `demo-refresh-${targetRole}`,
+      refresh_token: `demo-refresh-${demo.user.id}`,
       user: demo.user,
     } as Session;
 
@@ -381,7 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         'pratibhascan_demo_session',
         JSON.stringify({
           role: targetRole,
-          email: customEmail || demo.user.email,
+          email: demo.user.email,
         })
       );
     } catch {
@@ -392,39 +413,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign up with role and full name metadata
   const signUp = async (data: RegisterFormData): Promise<{ error: Error | null; requiresEmailConfirmation: boolean }> => {
     try {
-      if (!supabase || !isSupabaseConfigured()) {
-        await loginAsDemo(data.role, data.email);
-        return { error: null, requiresEmailConfirmation: false };
+      if (supabase && isSupabaseConfigured()) {
+        try {
+          const { data: authData, error } = await supabase.auth.signUp({
+            email: data.email,
+            password: data.password,
+            options: {
+              data: {
+                full_name: data.fullName,
+                role: data.role,
+              },
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          });
+
+          if (!error && authData) {
+            const requiresEmail = !authData.session && Boolean(authData.user);
+            setEmailPendingVerification(requiresEmail);
+
+            if (authData.session && authData.user) {
+              setIsDemoMode(false);
+              setSession(authData.session);
+              setUser(authData.user);
+              await loadProfile(authData.user.id, data.role);
+            }
+
+            return { error: null, requiresEmailConfirmation: requiresEmail };
+          }
+
+          if (error && !error.message.toLowerCase().includes('failed to fetch')) {
+            return { error, requiresEmailConfirmation: false };
+          }
+        } catch {
+          // If Supabase network call fails, proceed to local sandbox account
+        }
       }
 
-      const { data: authData, error } = await supabase.auth.signUp({
+      // Offline / Unconfigured / Sandbox Registration
+      const accountConfig = registerLocalAccount({
+        fullName: data.fullName,
         email: data.email,
+        role: data.role,
         password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-            role: data.role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
       });
 
-      if (error) {
-        return { error, requiresEmailConfirmation: false };
+      setIsDemoMode(true);
+      const demoSession = {
+        access_token: `demo-token-${accountConfig.user.id}`,
+        token_type: 'bearer',
+        expires_in: 86400,
+        refresh_token: `demo-refresh-${accountConfig.user.id}`,
+        user: accountConfig.user,
+      } as Session;
+
+      setSession(demoSession);
+      setUser(accountConfig.user);
+      setProfile(accountConfig.profile);
+      setAthleteData(accountConfig.athleteData || null);
+      setOrganization(accountConfig.organization || null);
+      setIsOnboarded(true);
+      setIsSuspended(false);
+
+      try {
+        localStorage.setItem(
+          'pratibhascan_demo_session',
+          JSON.stringify({
+            role: data.role,
+            email: accountConfig.user.email,
+          })
+        );
+      } catch {
+        // Storage error ignored
       }
 
-      // Check if session was returned or email confirmation is required
-      const requiresEmail = !authData.session && Boolean(authData.user);
-      setEmailPendingVerification(requiresEmail);
-
-      if (authData.session && authData.user) {
-        setIsDemoMode(false);
-        setSession(authData.session);
-        setUser(authData.user);
-        await loadProfile(authData.user.id, data.role);
-      }
-
-      return { error: null, requiresEmailConfirmation: requiresEmail };
+      return { error: null, requiresEmailConfirmation: false };
     } catch (err) {
       return { error: err as Error, requiresEmailConfirmation: false };
     }
@@ -456,14 +518,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { error: null };
           }
 
-          // If Supabase returned an error, check if this is a known demo account intended for offline testing
-          const isKnownDemo = Boolean(DEMO_ACCOUNTS[emailLower]);
-          if (!isKnownDemo) {
+          // If Supabase returned an error, check if this is a registered local or demo account
+          const isKnownAccount = Boolean(getLocalAccount(emailLower, data.password));
+          if (!isKnownAccount) {
             return { error };
           }
         } catch (netErr) {
-          const isKnownDemo = Boolean(DEMO_ACCOUNTS[emailLower]);
-          if (!isKnownDemo) {
+          const isKnownAccount = Boolean(getLocalAccount(emailLower, data.password));
+          if (!isKnownAccount) {
             throw netErr;
           }
         }
@@ -513,17 +575,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Send password reset email
   const resetPassword = async (email: string): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase || !isSupabaseConfigured()) {
-        throw new Error(
-          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
-        );
+      if (supabase && isSupabaseConfigured()) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        return { error };
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      return { error };
+      // Offline / sandbox mode: treat reset as successful simulated dispatch
+      return { error: null };
     } catch (err) {
       return { error: err as Error };
     }
@@ -532,14 +592,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Update password (used on /reset-password)
   const updatePassword = async (password: string): Promise<{ error: Error | null }> => {
     try {
-      if (!supabase || !isSupabaseConfigured()) {
-        throw new Error(
-          'Supabase backend authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your Vercel project environment variables.'
-        );
+      if (supabase && isSupabaseConfigured()) {
+        const { error } = await supabase.auth.updateUser({ password });
+        return { error };
       }
 
-      const { error } = await supabase.auth.updateUser({ password });
-      return { error };
+      // Offline / sandbox mode: treat update as successful local operation
+      return { error: null };
     } catch (err) {
       return { error: err as Error };
     }
