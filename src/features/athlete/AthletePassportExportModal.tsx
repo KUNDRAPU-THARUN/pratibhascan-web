@@ -39,7 +39,7 @@ export function AthletePassportExportModal({
                 <Badge variant="teal" className="text-[10px]">Official Record</Badge>
               </div>
               <p className="text-[11px] text-navy-500 font-medium mt-0.5">
-                KAARYAN LABS · Sports Talent Assessment Platform
+                PratibhaScan · Sports Talent Assessment Platform
               </p>
             </div>
             <div className="text-right">
@@ -108,7 +108,7 @@ export function AthletePassportExportModal({
               <ShieldCheck className="h-5 w-5 text-teal-600 shrink-0" />
               <div>
                 <p className="text-xs font-bold text-navy-950">Database Verified Profile</p>
-                <p className="text-[11px] text-navy-600">Standardized protocol benchmark records authenticated by KAARYAN LABS</p>
+                <p className="text-[11px] text-navy-600">Standardized protocol benchmark records authenticated by PratibhaScan Platform</p>
               </div>
             </div>
             <QrCode className="h-8 w-8 text-navy-400 shrink-0 opacity-60" />

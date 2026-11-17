@@ -617,7 +617,7 @@ export function runSquatValidationHarness(
     falsePositives === 0 && missedReps === 0 && detectedPartials === expectedPartials;
 
   return {
-    suiteName: 'KAARYAN Synthetic Squat Kinematics 16-Scenario Suite v2.0',
+    suiteName: 'PratibhaScan Synthetic Squat Kinematics 16-Scenario Suite v2.0',
     totalSequences: sequences.length,
     passedSequences,
     totalExpectedReps,

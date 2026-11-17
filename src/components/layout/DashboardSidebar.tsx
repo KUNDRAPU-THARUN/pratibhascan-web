@@ -243,7 +243,7 @@ export function DashboardSidebar({
           )}
 
           <div className="text-[10px] text-navy-400 text-center font-medium">
-            PratibhaScan Web v0.1.0 · KAARYAN LABS
+            PratibhaScan · Sports Performance Hub
           </div>
         </div>
       </aside>

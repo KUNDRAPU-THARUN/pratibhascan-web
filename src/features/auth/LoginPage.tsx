@@ -272,7 +272,7 @@ export function LoginPage() {
 
       {/* Attribution */}
       <p className="mt-8 text-center text-xs text-navy-500">
-        PratibhaScan is an enterprise product by <span className="font-semibold text-navy-700">KAARYAN LABS</span>.
+        PratibhaScan — Discover Potential. Measure Progress.
       </p>
     </div>
   );

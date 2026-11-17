@@ -86,8 +86,8 @@ export function DashboardTopNav({
           </div>
         ) : (
           <div className="hidden md:flex items-center gap-2 text-xs text-navy-600 font-medium">
-            <Shield className="h-4 w-4 text-primary-600" />
-            <span>Authenticated Portal · KAARYAN LABS PratibhaScan</span>
+            <Shield className="h-4 w-4 text-blue-600" />
+            <span>Authenticated Portal · PratibhaScan Sports Hub</span>
           </div>
         )}
 

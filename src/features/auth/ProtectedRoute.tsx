@@ -60,7 +60,7 @@ export function ProtectedRoute({
               </div>
             )}
             <p className="text-xs text-navy-500">
-              If you believe this is an error, please contact KAARYAN LABS support.
+              If you believe this is an error, please contact PratibhaScan platform support.
             </p>
             <div className="pt-2">
               <Button variant="outline" size="sm" onClick={() => signOut()} className="w-full">

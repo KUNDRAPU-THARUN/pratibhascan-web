@@ -1,11 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M12 2v4" />
-  <path d="m4.93 4.93 2.83 2.83" />
-  <path d="M2 12h4" />
-  <path d="m4.93 19.07 2.83-2.83" />
-  <circle cx="12" cy="12" r="3" />
-  <path d="M18.36 5.64l2.83-2.83" />
-  <path d="M22 12h-4" />
-  <path d="m18.36 18.36 2.83 2.83" />
-  <path d="M12 18v4" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="psGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B1736" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#06B6A8" />
+    </linearGradient>
+    <linearGradient id="pulseGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#22C55E" />
+    </linearGradient>
+  </defs>
+  <!-- Background Shield/Rounded Tile -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#psGrad)" />
+  
+  <!-- Concentric Target Radar / Scan Rings -->
+  <circle cx="32" cy="32" r="22" stroke="#FFFFFF" stroke-width="1.5" stroke-dasharray="3 3" fill="none" opacity="0.4" />
+  <circle cx="32" cy="32" r="14" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.6" />
+  
+  <!-- Kinetic Motion Chevron / Athletic Talent Bolt -->
+  <path d="M34 16 L22 34 L32 34 L30 48 L42 30 L32 30 Z" fill="#FFFFFF" />
+  <circle cx="32" cy="32" r="3" fill="url(#pulseGrad)" />
 </svg>

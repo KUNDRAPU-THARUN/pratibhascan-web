@@ -27,7 +27,7 @@ export function DesignSystemView() {
           <Badge variant="teal">Living Tokens &amp; Components</Badge>
         </div>
         <p className="text-xs sm:text-sm text-navy-500 mt-1 max-w-2xl">
-          Specification of design tokens, accessible reusable UI primitives, and application states engineered for KAARYAN LABS sports technology.
+          Specification of design tokens, accessible reusable UI primitives, and application states engineered for PratibhaScan sports technology.
         </p>
       </div>
 

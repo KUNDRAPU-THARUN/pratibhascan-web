@@ -93,11 +93,11 @@ export function PublicFooter() {
 
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-navy-900">
-                Company
+                Platform &amp; Support
               </p>
               <ul className="space-y-2 text-xs sm:text-sm">
                 <li className="font-semibold text-navy-800">
-                  {BRAND.company}
+                  PratibhaScan Sports Tech
                 </li>
                 <li className="flex items-center gap-1.5 text-navy-500">
                   <Globe className="h-3.5 w-3.5 text-navy-400" />
@@ -105,7 +105,7 @@ export function PublicFooter() {
                 </li>
                 <li className="flex items-center gap-1.5 text-navy-500">
                   <Mail className="h-3.5 w-3.5 text-navy-400" />
-                  <span>inquiries@kaaryanlabs.com</span>
+                  <span>support@pratibhascan.com</span>
                 </li>
               </ul>
             </div>
@@ -114,7 +114,7 @@ export function PublicFooter() {
           {/* Bottom Attribution & Legal */}
           <div className="mt-12 border-t border-navy-100 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-navy-400">
             <p>
-              {BRAND.copyright} PratibhaScan is a proprietary sports technology initiative of {BRAND.company}.
+              {BRAND.copyright} PratibhaScan — AI-Assisted Sports Talent Assessment &amp; Athlete Performance Platform.
             </p>
             <div className="flex items-center gap-4">
               <button
@@ -122,7 +122,7 @@ export function PublicFooter() {
                 onClick={() =>
                   showPolicy(
                     'Privacy Standards & Data Governance',
-                    'PratibhaScan adheres to data minimization and secure storage principles for athletic records. Minor athlete biometrics will require verified parental consent upon Phase 2 onboarding in accordance with Indian personal data protection standards.'
+                    'PratibhaScan adheres to data minimization and secure storage principles for athletic records. Minor athlete biometrics require verified guardian consent in accordance with Indian personal data protection standards.'
                   )
                 }
                 className="hover:text-navy-700 transition-colors cursor-pointer text-xs"
@@ -135,7 +135,7 @@ export function PublicFooter() {
                 onClick={() =>
                   showPolicy(
                     'Ethical AI & Fair Play Charter',
-                    'KAARYAN LABS is committed to objective, unbiased athletic evaluations. AI assisted protocols serve exclusively to validate physical measurements and calibration, never to replace certified human coaches or establish arbitrary talent disqualifications.'
+                    'PratibhaScan is committed to objective, unbiased athletic evaluations. AI-assisted protocols serve exclusively to validate physical measurements and calibration, never to replace certified human coaches or establish arbitrary talent disqualifications.'
                   )
                 }
                 className="hover:text-navy-700 transition-colors cursor-pointer text-xs"
@@ -148,7 +148,7 @@ export function PublicFooter() {
                 onClick={() =>
                   showPolicy(
                     'Terms of Platform Use',
-                    'PratibhaScan is an assessment and talent discovery tool. Phase 1 provides an architecture preview. Standard operating procedures must be adhered to during all physical testing to prevent athletic injury.'
+                    'PratibhaScan is a sports assessment and talent discovery tool. Standard operating procedures must be adhered to during all physical testing to prevent athletic injury.'
                   )
                 }
                 className="hover:text-navy-700 transition-colors cursor-pointer text-xs"
@@ -165,7 +165,7 @@ export function PublicFooter() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={modalTitle}
-        description={`KAARYAN LABS Policy Document — ${BRAND.name}`}
+        description={`PratibhaScan Governance Standards — ${BRAND.name}`}
         footerActions={
           <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
             Close

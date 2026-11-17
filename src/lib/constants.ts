@@ -2,12 +2,12 @@ import { AssessmentProtocol, RoleConfig } from '@/types';
 
 export const BRAND = {
   name: 'PratibhaScan',
-  company: 'KAARYAN LABS',
-  tagline: 'AI-Powered Sports Talent Assessment & Development Platform',
-  version: '1.0.0-phase1',
+  tagline: 'Discover Potential. Measure Progress.',
+  category: 'AI-Assisted Sports Talent Assessment & Athlete Performance Platform',
+  version: '2.0.0',
   description:
     'A standardized sports technology platform unifying biometric assessments, athletic benchmarking, and talent discovery across Athletes, Academies, and Institutions.',
-  copyright: `© ${new Date().getFullYear()} KAARYAN LABS. All rights reserved.`,
+  copyright: `© ${new Date().getFullYear()} PratibhaScan. All rights reserved.`,
 } as const;
 
 export const ROLES_CONFIG: Record<'athlete' | 'academy' | 'institution', RoleConfig> = {

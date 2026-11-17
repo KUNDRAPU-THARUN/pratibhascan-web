@@ -76,7 +76,7 @@ export const SquatSessionSummaryModal: React.FC<SquatSessionSummaryModalProps> =
   const handleExportJSON = () => {
     const exportData = {
       product: 'PratibhaScan Web — AI Biomechanics Studio',
-      company: 'KAARYAN LABS',
+      platform: 'PratibhaScan Sports Technology',
       exportedAt: new Date().toISOString(),
       disclaimer:
         'EXPERIMENTAL RESEARCH SUMMARY — Monocular 2D pose inference. Not a clinical measurement.',

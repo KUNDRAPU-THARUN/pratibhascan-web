@@ -50,7 +50,7 @@ export function NotFoundPage() {
 
       {/* Footer Note */}
       <footer className="text-center text-xs text-navy-400 py-4">
-        PratibhaScan • A Sports Technology Initiative by KAARYAN LABS
+        PratibhaScan • AI-Assisted Sports Talent Assessment Platform
       </footer>
     </div>
   );
